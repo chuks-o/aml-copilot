@@ -1,0 +1,121 @@
+[project]
+name = "aml"
+version = "0.0.0"
+description = "AML alert investigation backend"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.118",
+    "pydantic>=2.11",
+    "pydantic-settings>=2.11",
+    "structlog>=25.4",
+    "typer>=0.19",
+    "uvicorn>=0.37",
+]
+
+[project.scripts]
+aml = "aml.cli:app"
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.13",
+    "import-linter>=2.5",
+    "mypy>=1.18",
+    "pytest>=8.4",
+    "ruff>=0.13",
+]
+notebooks = [
+    "ipykernel>=6.30",
+    "jupyter>=1.1",
+    "kaggle>=1.8",
+    "matplotlib>=3.10",
+    "nbconvert>=7.16",
+    "nbformat>=5.10",
+    "pandas>=3.0",
+    "pyarrow>=21",
+]
+
+[build-system]
+requires = ["uv_build>=0.8,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv]
+default-groups = ["dev"]
+
+# ---------------------------------------------------------------- lint / types
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "N", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+files = ["src", "tests"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib", "-q"]
+testpaths = ["tests"]
+
+# ---------------------------------------------------------------- architecture
+# Checked by `lint-imports` (make lint). tests/test_architecture.py fails if a
+# new top-level aml module is added without being listed in these contracts.
+
+[tool.importlinter]
+root_package = "aml"
+
+[[tool.importlinter.contracts]]
+id = "workers-use-http"
+name = "Workers reach aml.api over HTTP, not by import"
+type = "forbidden"
+source_modules = ["aml.ingest", "aml.investigator", "aml.scoring", "aml.evals"]
+forbidden_modules = ["aml.api"]
+
+[[tool.importlinter.contracts]]
+id = "evals-is-a-leaf"
+name = "Only tests (and aml.cli) import aml.evals"
+type = "forbidden"
+source_modules = [
+    "aml.__main__",
+    "aml.api",
+    "aml.cli",
+    "aml.clients",
+    "aml.common",
+    "aml.data",
+    "aml.ingest",
+    "aml.investigator",
+    "aml.scoring",
+]
+forbidden_modules = ["aml.evals"]
+ignore_imports = ["aml.cli -> aml.evals"]
+unmatched_ignore_imports_alerting = "none"
+
+[[tool.importlinter.contracts]]
+id = "common-is-foundation"
+name = "aml.common imports nothing else from aml"
+type = "forbidden"
+source_modules = ["aml.common"]
+forbidden_modules = [
+    "aml.__main__",
+    "aml.api",
+    "aml.cli",
+    "aml.clients",
+    "aml.data",
+    "aml.evals",
+    "aml.ingest",
+    "aml.investigator",
+    "aml.scoring",
+]

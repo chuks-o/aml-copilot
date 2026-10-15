@@ -1,13 +1,24 @@
 # Secrets
 .env
 
-# Data (download via data/README.md)
-data/raw/
+# Data (download via backend/data/README.md)
+backend/data/raw/
 
 # Python
 .venv/
 __pycache__/
 *.pyc
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.import_linter_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
 
 # Jupyter
 .ipynb_checkpoints/
