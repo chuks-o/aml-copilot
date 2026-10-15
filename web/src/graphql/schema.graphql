@@ -1,0 +1,13 @@
+"""
+Source of truth for the web GraphQL API, served from src/app/api/graphql/route.ts
+(GraphQL Yoga, T28). Types are generated into src/generated (make codegen).
+"""
+type Query {
+  health: Health!
+}
+
+type Health {
+  status: String!
+  service: String!
+  version: String!
+}

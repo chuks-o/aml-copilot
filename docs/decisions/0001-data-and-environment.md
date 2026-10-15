@@ -1,16 +1,16 @@
 # 0001 — Data location, credentials, environment, loading
 
-**Status:** Accepted · **Ticket:** T01 · **Date:** 2026-10-15
+**Status:** Accepted; decision 3 superseded by [0006](0006-toolchain-versions.md); paths updated by [0005](0005-repo-layout.md) · **Ticket:** T01 · **Date:** 2026-10-15
 
 ## Context
 The raw data is ~475 MB from Kaggle and needs an API token to download. The project needs a reproducible Python setup and a notebook that others can read without rerunning.
 
 ## Decisions
-1. **Raw data in `data/raw/`, git-ignored.** Downloaded per `data/README.md`.
+1. **Raw data in `backend/data/raw/`, git-ignored.** Downloaded per `backend/data/README.md`. (T01 originally used the root `data/raw/`; it moved in T02.)
    - *Rejected:* committing the data (too big; it's someone else's dataset). Git LFS (unnecessary while the source is a stable public download).
 2. **Kaggle token in a git-ignored `.env`** (`KAGGLE_API_TOKEN`), loaded into the shell with `set -a; source .env` before running the CLI. `.env.example` documents the variable.
    - *Rejected:* `~/.kaggle/access_token`. It's safer by default because it lives outside every repo, but the user preferred per-project configuration. The `.env` is `chmod 600` and ignored before the first commit.
-3. **`python -m venv .venv` + pinned `requirements.txt`.**
+3. **(Superseded by 0006: uv project in `backend/` on Python 3.12, notebook deps in the `notebooks` group.)** `python -m venv .venv` + pinned `requirements.txt`.
    - *Rejected:* uv (faster, but one more tool to install); conda (heavy); Poetry (overkill before there is a package).
 4. **Load all 5.08M rows with explicit dtypes.** IDs are kept as strings (bank codes have leading zeros), currencies and formats are categoricals, and timestamps are parsed. This takes about 5 s and about 700 MB of RAM.
    - *Rejected:* sampling (a 0.1% positive rate makes samples noisy, and the joins need every row). Parquet caching (that belongs to an ingestion ticket, not exploration).
