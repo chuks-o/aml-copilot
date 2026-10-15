@@ -1,0 +1,10 @@
+# Python 3.14. Top-level dependencies, pinned for reproducibility.
+pandas==3.0.6
+pyarrow==26.0.0
+matplotlib==3.11.2
+jupyter==1.1.1
+nbconvert==7.17.2
+nbformat==5.11.1
+ipykernel==7.4.0
+kaggle==2.2.4
+python-dotenv==1.2.4
