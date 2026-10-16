@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9",
+    "@redocly/cli": "2.57.0",
     "@types/node": "^22",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

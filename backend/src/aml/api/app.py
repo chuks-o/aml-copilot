@@ -21,7 +21,14 @@ def create_app() -> FastAPI:
     configure_logging(SERVICE, settings.log_level)
     health = Health(status="ok", service=SERVICE, version=version("aml"))
 
-    app = FastAPI(title="aml-copilot API", version=health.version)
+    # backend/openapi.yaml is the contract (decision 0014); FastAPI must not publish its own.
+    app = FastAPI(
+        title="aml-copilot API",
+        version=health.version,
+        openapi_url=None,
+        docs_url=None,
+        redoc_url=None,
+    )
 
     @app.get("/healthz", tags=["ops"])
     def healthz() -> Health:

@@ -6,7 +6,7 @@ BACKEND := $(MAKE) --no-print-directory -C backend
 COMPOSE := docker compose -f infra/docker-compose.yml
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint fmt typecheck test codegen up down migrate seed replay eval-smoke env-check
+.PHONY: help install lint lint-api fmt typecheck test codegen up down migrate seed replay eval-smoke env-check
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
@@ -15,9 +15,12 @@ install: ## Install web and backend dependencies from lockfiles
 	$(WEB) install --frozen-lockfile
 	$(BACKEND) install
 
-lint: ## ESLint + Prettier (web); Ruff + import-linter (backend)
+lint: lint-api ## ESLint + Prettier (web); Ruff + import-linter (backend); the API contract
 	$(WEB) run lint
 	$(BACKEND) lint
+
+lint-api: ## Redocly lint of backend/openapi.yaml (CLI pinned in web/package.json)
+	$(WEB) exec redocly lint --config ../backend/redocly.yaml ../backend/openapi.yaml
 
 fmt: ## Auto-format web and backend
 	$(WEB) run format

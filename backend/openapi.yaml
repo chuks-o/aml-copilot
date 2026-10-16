@@ -1,0 +1,1150 @@
+openapi: 3.1.0
+info:
+  title: aml-copilot Cases API
+  version: 0.1.0
+  summary: Alerts, accounts, transactions and investigation cases.
+  description: |
+    The REST API served by `aml.api`. **This file is the source of truth.** The server is
+    written to match it; FastAPI's own schema generation is turned off.
+    Design choices are recorded in `docs/decisions/0014-cases-api-contract.md`.
+
+    ## Conventions
+    - **Errors.** Every 4xx and 5xx response is `application/problem+json`
+      ([RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)). 429 and 503 carry `Retry-After`.
+    - **Identifiers.** Alerts, cases and decisions use UUIDs. Transactions use a 64-bit
+      integer (it stays far below 2^53, so it is exact in JavaScript). Accounts use
+      `"<bank>:<account>"`, for example `10:8000EBD30`. The bank code has no leading zeros,
+      because some account numbers exist at more than one bank.
+    - **Money.** Money is `{"amount": "<decimal string>", "currency": "<3-letter code>"}`,
+      never a JSON number. Codes are ISO 4217, plus `BTC` for Bitcoin.
+    - **Time.** Timestamps are RFC 3339 in UTC. Time windows are half-open: `[from, to)`.
+    - **Pagination.** List endpoints use opaque cursors. Pass `next_cursor` back as `cursor`
+      to get the next page. It is `null` on the last page. Cursors are only valid with the
+      same filters they were issued for.
+    - **Idempotency.** Every `POST` requires an `Idempotency-Key` header
+      ([IETF draft](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/)).
+      - Repeating a request with the same key and body returns the original response.
+      - The same key with a different body returns 422.
+      - The same key while the first request is still running returns 409.
+      - Keys are kept for 24 hours.
+    - **Out of scope.** `GET /healthz` (process liveness, see decision 0007) is served by the
+      same process but is an ops endpoint, not part of this contract.
+    - **Concurrency.** Cases carry a `version`, also sent as a strong `ETag` (`"3"`).
+      `PATCH` requires a matching `If-Match`.
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+servers:
+  - url: /
+    description: |
+      Same origin as the caller. Clients set the base URL; locally it is
+      `http://localhost:8000` (`make up`).
+tags:
+  - name: alerts
+    description: Model-raised alerts on an account.
+  - name: accounts
+    description: Account profile, transactions and counterparties.
+  - name: cases
+    description: Investigation cases, their status and analyst decisions.
+
+paths:
+  /alerts:
+    get:
+      tags: [alerts]
+      operationId: listAlerts
+      summary: List alerts
+      description: Newest first (`created_at` descending, then `id`).
+      parameters:
+        - name: status
+          in: query
+          description: Only alerts in this status.
+          schema:
+            $ref: '#/components/schemas/AlertStatus'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: One page of alerts.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    post:
+      tags: [alerts]
+      operationId: createAlert
+      summary: Raise an alert
+      description: Called by the scoring worker. New alerts start `OPEN`.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertCreate'
+      responses:
+        '201':
+          description: Created, or the stored response for a repeated `Idempotency-Key`.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /alerts/{alert_id}:
+    get:
+      tags: [alerts]
+      operationId: getAlert
+      summary: Get an alert
+      parameters:
+        - $ref: '#/components/parameters/AlertId'
+      responses:
+        '200':
+          description: The alert.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /accounts/{account_id}:
+    get:
+      tags: [accounts]
+      operationId: getAccount
+      summary: Get an account's KYC profile
+      description: |
+        Contains only what the dataset records about the account holder: bank, entity and
+        entity type, plus an activity summary. There is no risk rating, occupation or expected
+        activity, because the dataset doesn't have them.
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      responses:
+        '200':
+          description: The account profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /accounts/{account_id}/transactions:
+    get:
+      tags: [accounts]
+      operationId: listAccountTransactions
+      summary: List an account's transactions
+      description: |
+        Transactions where the account is the payer or the payee, oldest first (`ts`
+        ascending, then `id`). Paginated by keyset on `(ts, id)`. `total` is the exact number
+        of transactions in the window, across all pages.
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - name: from
+          in: query
+          description: Window start, inclusive. Omit to start at the first transaction.
+          schema:
+            type: string
+            format: date-time
+          example: '2022-09-01T00:00:00Z'
+        - name: to
+          in: query
+          description: Window end, exclusive. Must be after `from`. Omit for no end.
+          schema:
+            type: string
+            format: date-time
+          example: '2022-09-08T00:00:00Z'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: One page of transactions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /accounts/{account_id}/counterparties:
+    get:
+      tags: [accounts]
+      operationId: listAccountCounterparties
+      summary: Aggregate an account's counterparties
+      description: |
+        One edge per (counterparty, direction, currency) in the window
+        `[as_of - window_hours, as_of)`.
+        - Outgoing edges sum `amount_paid` and incoming edges sum `amount_received`, so each
+          total is money this account actually sent or got.
+        - Amounts in different currencies are never added together.
+        - Self-transfers are excluded.
+        - Edges are ordered by `transaction_count` descending, then `counterparty_id`.
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - name: window_hours
+          in: query
+          required: true
+          description: Length of the window, in hours, ending at `as_of`.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 8760
+          example: 72
+        - name: as_of
+          in: query
+          description: |
+            Window end, exclusive. Defaults to now. Pass the alert time when investigating
+            historical data.
+          schema:
+            type: string
+            format: date-time
+          example: '2022-09-05T12:00:00Z'
+        - name: limit
+          in: query
+          description: Maximum number of edges to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+      responses:
+        '200':
+          description: Aggregated edges.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CounterpartyList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /cases:
+    get:
+      tags: [cases]
+      operationId: listCases
+      summary: List cases
+      description: Newest first (`created_at` descending, then `id`).
+      parameters:
+        - name: status
+          in: query
+          description: Only cases in this status.
+          schema:
+            $ref: '#/components/schemas/CaseStatus'
+        - name: typology
+          in: query
+          description: Only cases with this typology.
+          schema:
+            $ref: '#/components/schemas/Typology'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: One page of cases.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    post:
+      tags: [cases]
+      operationId: createCase
+      summary: Open a case
+      description: |
+        Groups one or more `OPEN` alerts on the same account into a new `OPEN` case. Those
+        alerts move to `IN_CASE`.
+        - 409 if an alert is already in a case.
+        - 422 if an alert is on a different account.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseCreate'
+      responses:
+        '201':
+          description: Created, or the stored response for a repeated `Idempotency-Key`.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /cases/{case_id}:
+    get:
+      tags: [cases]
+      operationId: getCase
+      summary: Get a case
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      responses:
+        '200':
+          description: The case. `ETag` carries its version, for `If-Match` on `PATCH`.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /cases/{case_id}/status:
+    patch:
+      tags: [cases]
+      operationId: changeCaseStatus
+      summary: Move a case to a new status
+      description: |
+        Allowed transitions (anything else returns 409):
+
+        | From | To |
+        | --- | --- |
+        | `OPEN` | `INVESTIGATING` |
+        | `INVESTIGATING` | `COMPLETE`, `NEEDS_HUMAN` |
+        | `COMPLETE`, `NEEDS_HUMAN` | `ESCALATED`, `CLOSED` |
+
+        `ESCALATED` and `CLOSED` are final. The same table is machine-readable as
+        `x-transitions` on the `CaseStatus` schema.
+        - Missing `If-Match` returns 428.
+        - A stale version returns 412.
+        - On success `version` goes up by one.
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseStatusChange'
+      responses:
+        '200':
+          description: The updated case.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /cases/{case_id}/decisions:
+    post:
+      tags: [cases]
+      operationId: createCaseDecision
+      summary: Record an analyst decision
+      description: |
+        The analyst approves the copilot's recommendation, or overrides it with a different
+        outcome. A reason is always required.
+        - Allowed only when the case is `COMPLETE` or `NEEDS_HUMAN`, and only once per case.
+        - `APPROVE` needs a recommendation on the case. `OVERRIDE` must choose a different
+          outcome from it.
+        - Any of these violated returns 409.
+
+        Recording a decision does **not** change the case status. Move the case to
+        `ESCALATED` or `CLOSED` with `PATCH /cases/{case_id}/status`.
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecisionCreate'
+      responses:
+        '201':
+          description: Recorded, or the stored response for a repeated `Idempotency-Key`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Decision'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+components:
+  parameters:
+    AlertId:
+      name: alert_id
+      in: path
+      required: true
+      description: Alert id.
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    CaseId:
+      name: case_id
+      in: path
+      required: true
+      description: Case id.
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    AccountId:
+      name: account_id
+      in: path
+      required: true
+      description: '`"<bank>:<account>"`. `:` is legal in a path segment and needs no escaping.'
+      schema:
+        $ref: '#/components/schemas/AccountId'
+    Limit:
+      name: limit
+      in: query
+      description: Page size.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+        default: 50
+    Cursor:
+      name: cursor
+      in: query
+      description: '`next_cursor` from the previous page. Opaque; do not build or parse it.'
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 512
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Unique per logical request; a UUID is recommended. Reuse it only when retrying the same
+        request. Missing returns 400.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+      example: 4f3c9a2e-8d1b-4c7e-9f6a-2b5d8e1c0a73
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: The case's current `ETag`. Missing returns 428; stale returns 412.
+      schema:
+        type: string
+        pattern: '^"[1-9][0-9]*"$'
+      example: '"3"'
+
+  headers:
+    Location:
+      description: URL of the created resource.
+      schema:
+        type: string
+        format: uri-reference
+    ETag:
+      description: Strong ETag holding the case `version`, e.g. `"3"`.
+      schema:
+        type: string
+        pattern: '^"[1-9][0-9]*"$'
+    RetryAfter:
+      description: Seconds to wait before retrying.
+      schema:
+        type: integer
+        minimum: 0
+
+  responses:
+    BadRequest:
+      description: Malformed request (bad header, unparseable cursor or id, missing `Idempotency-Key`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: The resource does not exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: |
+        Not allowed in the resource's current state: an invalid status transition, an alert
+        already in a case, a second decision, or the same `Idempotency-Key` still in flight.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    PreconditionFailed:
+      description: '`If-Match` does not match the current version. Re-read the case and retry.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    PreconditionRequired:
+      description: '`If-Match` is required.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnprocessableContent:
+      description: |
+        Well-formed but invalid: a field fails validation, or an `Idempotency-Key` was reused
+        with a different body.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblem'
+    TooManyRequests:
+      description: Rate limited.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InternalError:
+      description: Unexpected server error.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ServiceUnavailable:
+      description: A dependency (database, broker) is unavailable.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Uuid:
+      type: string
+      format: uuid
+      example: 0b6f1c1e-5d2a-4a8e-9a43-7c1d2e3f4a5b
+    AccountId:
+      type: string
+      description: |
+        `"<bank>:<account>"`. The bank code has no leading zeros; the account number is
+        upper-case hex.
+      pattern: '^(0|[1-9][0-9]*):[0-9A-F]+$'
+      maxLength: 64
+      example: 10:8000EBD30
+    TransactionId:
+      type: integer
+      format: int64
+      minimum: 1
+      example: 1048576
+    Timestamp:
+      type: string
+      format: date-time
+      example: '2022-09-01T00:20:00Z'
+    Currency:
+      type: string
+      description: ISO 4217 code, or `BTC` for Bitcoin.
+      pattern: '^[A-Z]{3}$'
+      example: USD
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount:
+          type: string
+          description: Non-negative decimal, at most 8 fractional digits. Never a JSON number.
+          pattern: '^(0|[1-9][0-9]{0,17})(\.[0-9]{1,8})?$'
+          example: '3697.34'
+        currency:
+          $ref: '#/components/schemas/Currency'
+      additionalProperties: false
+    Typology:
+      type: string
+      description: Laundering pattern, as named in the HI-Small patterns file.
+      enum: [FAN_IN, FAN_OUT, CYCLE, BIPARTITE, STACK, SCATTER_GATHER, GATHER_SCATTER, RANDOM]
+
+    Problem:
+      type: object
+      description: RFC 9457 problem details.
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: Identifies the problem type. `about:blank` when only `status` matters.
+          default: about:blank
+          example: https://aml-copilot.local/problems/invalid-transition
+        title:
+          type: string
+          description: Short, human-readable summary of the problem type.
+          example: Invalid status transition
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+          example: 409
+        detail:
+          type: string
+          description: Explanation specific to this occurrence.
+          example: Case is CLOSED; CLOSED is final.
+        instance:
+          type: string
+          format: uri-reference
+          description: The request path that produced the problem.
+          example: /cases/0b6f1c1e-5d2a-4a8e-9a43-7c1d2e3f4a5b/status
+    ValidationProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            errors:
+              type: array
+              description: One entry per invalid field.
+              items:
+                type: object
+                required: [location, message]
+                properties:
+                  location:
+                    type: string
+                    description: JSON Pointer into the request, prefixed by its part.
+                    example: /body/alert_ids/0
+                  message:
+                    type: string
+                    example: not a valid UUID
+
+    AlertStatus:
+      type: string
+      description: '`OPEN` until grouped into a case (`IN_CASE`) or dismissed (`DISMISSED`).'
+      enum: [OPEN, IN_CASE, DISMISSED]
+    AlertCreate:
+      allOf:
+        - $ref: '#/components/schemas/AlertFields'
+      unevaluatedProperties: false
+    AlertFields:
+      type: object
+      description: Fields shared by `AlertCreate` and `Alert`.
+      required: [account_id, score, reason, transaction_ids, model_version]
+      properties:
+        account_id:
+          $ref: '#/components/schemas/AccountId'
+        score:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Model score; higher is more suspicious.
+          example: 0.93
+        typology:
+          description: The model's guess at the pattern, if it makes one.
+          oneOf:
+            - $ref: '#/components/schemas/Typology'
+            - type: 'null'
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Why the model raised the alert, in a sentence.
+          example: Received from 14 accounts within 6 hours, then sent out within 2 hours.
+        transaction_ids:
+          type: array
+          minItems: 1
+          maxItems: 500
+          uniqueItems: true
+          description: The transactions that triggered the alert.
+          items:
+            $ref: '#/components/schemas/TransactionId'
+        model_version:
+          type: string
+          minLength: 1
+          maxLength: 64
+          example: gbm-2026-10-01
+    Alert:
+      allOf:
+        - $ref: '#/components/schemas/AlertFields'
+        - type: object
+          required: [id, status, typology, case_id, created_at]
+          properties:
+            id:
+              $ref: '#/components/schemas/Uuid'
+            status:
+              $ref: '#/components/schemas/AlertStatus'
+            case_id:
+              description: The case this alert belongs to, once `IN_CASE`.
+              oneOf:
+                - $ref: '#/components/schemas/Uuid'
+                - type: 'null'
+            created_at:
+              $ref: '#/components/schemas/Timestamp'
+    AlertPage:
+      type: object
+      required: [items, next_cursor, total_estimate]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Alert'
+        next_cursor:
+          $ref: '#/components/schemas/NextCursor'
+        total_estimate:
+          $ref: '#/components/schemas/TotalEstimate'
+
+    EntityType:
+      type: string
+      description: |
+        Parsed from the dataset's entity name ("Corporation #33520"). `COUNTRY` and `DIRECT`
+        are labels the data generator uses without documenting them; they are passed through.
+      enum: [CORPORATION, PARTNERSHIP, SOLE_PROPRIETORSHIP, INDIVIDUAL, COUNTRY, DIRECT]
+    Account:
+      type: object
+      required:
+        - id
+        - bank_id
+        - bank_name
+        - account_number
+        - entity_id
+        - entity_name
+        - entity_type
+        - activity
+      properties:
+        id:
+          $ref: '#/components/schemas/AccountId'
+        bank_id:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)$'
+          example: '10'
+        bank_name:
+          type: string
+          example: Canada Bank #27
+        account_number:
+          type: string
+          pattern: '^[0-9A-F]+$'
+          example: 8000EBD30
+        entity_id:
+          type: string
+          description: The account holder. One entity can hold accounts at several banks.
+          example: 800C998A0
+        entity_name:
+          type: string
+          example: 'Corporation #33520'
+        entity_type:
+          $ref: '#/components/schemas/EntityType'
+        activity:
+          $ref: '#/components/schemas/ActivitySummary'
+    ActivitySummary:
+      type: object
+      required: [first_seen, last_seen, sent_count, received_count]
+      properties:
+        first_seen:
+          description: First transaction, or `null` if the account has none.
+          oneOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - type: 'null'
+        last_seen:
+          oneOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - type: 'null'
+        sent_count:
+          type: integer
+          minimum: 0
+        received_count:
+          type: integer
+          minimum: 0
+
+    PaymentFormat:
+      type: string
+      enum: [ACH, BITCOIN, CASH, CHEQUE, CREDIT_CARD, REINVESTMENT, WIRE]
+    Direction:
+      type: string
+      description: Relative to the account in the path. `SELF` is a transfer to itself.
+      enum: [IN, OUT, SELF]
+    Transaction:
+      type: object
+      description: |
+        One payment. `amount_paid` leaves the payer; `amount_received` reaches the payee. They
+        differ when the currencies differ. The dataset's laundering label is deliberately not
+        exposed: it is ground truth for evaluation, not evidence.
+      required:
+        - id
+        - ts
+        - from_account_id
+        - to_account_id
+        - direction
+        - amount_paid
+        - amount_received
+        - payment_format
+      properties:
+        id:
+          $ref: '#/components/schemas/TransactionId'
+        ts:
+          $ref: '#/components/schemas/Timestamp'
+        from_account_id:
+          $ref: '#/components/schemas/AccountId'
+        to_account_id:
+          $ref: '#/components/schemas/AccountId'
+        direction:
+          $ref: '#/components/schemas/Direction'
+        amount_paid:
+          $ref: '#/components/schemas/Money'
+        amount_received:
+          $ref: '#/components/schemas/Money'
+        payment_format:
+          $ref: '#/components/schemas/PaymentFormat'
+    TransactionPage:
+      type: object
+      required: [items, next_cursor, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        next_cursor:
+          $ref: '#/components/schemas/NextCursor'
+        total:
+          type: integer
+          minimum: 0
+          description: Exact number of transactions in the window, across all pages.
+
+    CounterpartyEdge:
+      type: object
+      required:
+        - counterparty_id
+        - direction
+        - transaction_count
+        - total
+        - first_ts
+        - last_ts
+      properties:
+        counterparty_id:
+          $ref: '#/components/schemas/AccountId'
+        direction:
+          type: string
+          enum: [IN, OUT]
+        transaction_count:
+          type: integer
+          minimum: 1
+        total:
+          $ref: '#/components/schemas/Money'
+        first_ts:
+          $ref: '#/components/schemas/Timestamp'
+        last_ts:
+          $ref: '#/components/schemas/Timestamp'
+    CounterpartyList:
+      type: object
+      required: [account_id, window_start, window_end, items, total_edges]
+      properties:
+        account_id:
+          $ref: '#/components/schemas/AccountId'
+        window_start:
+          $ref: '#/components/schemas/Timestamp'
+        window_end:
+          $ref: '#/components/schemas/Timestamp'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CounterpartyEdge'
+        total_edges:
+          type: integer
+          minimum: 0
+          description: Edges in the window before `limit`; more than `items` means truncated.
+
+    CaseStatus:
+      type: string
+      description: See `PATCH /cases/{case_id}/status` for the allowed transitions.
+      enum: [OPEN, INVESTIGATING, COMPLETE, NEEDS_HUMAN, ESCALATED, CLOSED]
+      x-transitions:
+        OPEN: [INVESTIGATING]
+        INVESTIGATING: [COMPLETE, NEEDS_HUMAN]
+        COMPLETE: [ESCALATED, CLOSED]
+        NEEDS_HUMAN: [ESCALATED, CLOSED]
+        ESCALATED: []
+        CLOSED: []
+    Outcome:
+      type: string
+      description: What should happen to the case.
+      enum: [ESCALATE, CLOSE]
+    Recommendation:
+      type: object
+      description: The copilot's proposed outcome, set when the investigation finishes.
+      required: [outcome, summary, created_at]
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        summary:
+          type: string
+          example: Funds from 14 unrelated accounts consolidated and forwarded within 8 hours.
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+    CaseCreate:
+      type: object
+      required: [account_id, alert_ids]
+      properties:
+        account_id:
+          $ref: '#/components/schemas/AccountId'
+        alert_ids:
+          type: array
+          minItems: 1
+          maxItems: 100
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/Uuid'
+      additionalProperties: false
+    Case:
+      type: object
+      required:
+        - id
+        - version
+        - status
+        - typology
+        - account_id
+        - alert_ids
+        - recommendation
+        - decision
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        version:
+          type: integer
+          minimum: 1
+          description: Goes up by one on every change. Sent as `ETag`.
+          example: 3
+        status:
+          $ref: '#/components/schemas/CaseStatus'
+        typology:
+          description: Assigned during the investigation; `null` until then.
+          oneOf:
+            - $ref: '#/components/schemas/Typology'
+            - type: 'null'
+        account_id:
+          $ref: '#/components/schemas/AccountId'
+        alert_ids:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Uuid'
+        recommendation:
+          oneOf:
+            - $ref: '#/components/schemas/Recommendation'
+            - type: 'null'
+        decision:
+          description: The analyst's decision, once recorded.
+          oneOf:
+            - $ref: '#/components/schemas/Decision'
+            - type: 'null'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    CasePage:
+      type: object
+      required: [items, next_cursor, total_estimate]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Case'
+        next_cursor:
+          $ref: '#/components/schemas/NextCursor'
+        total_estimate:
+          $ref: '#/components/schemas/TotalEstimate'
+    CaseStatusChange:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/CaseStatus'
+        reason:
+          type: string
+          maxLength: 2000
+          description: Optional note stored with the transition.
+      additionalProperties: false
+
+    DecisionCreate:
+      description: '`APPROVE` takes the recommendation''s outcome; `OVERRIDE` states a different one.'
+      oneOf:
+        - $ref: '#/components/schemas/ApproveDecision'
+        - $ref: '#/components/schemas/OverrideDecision'
+      discriminator:
+        propertyName: action
+        mapping:
+          APPROVE: '#/components/schemas/ApproveDecision'
+          OVERRIDE: '#/components/schemas/OverrideDecision'
+    ApproveDecision:
+      type: object
+      required: [action, reason, analyst_id]
+      properties:
+        action:
+          type: string
+          const: APPROVE
+        reason:
+          $ref: '#/components/schemas/DecisionReason'
+        analyst_id:
+          $ref: '#/components/schemas/AnalystId'
+      additionalProperties: false
+    OverrideDecision:
+      type: object
+      required: [action, outcome, reason, analyst_id]
+      properties:
+        action:
+          type: string
+          const: OVERRIDE
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reason:
+          $ref: '#/components/schemas/DecisionReason'
+        analyst_id:
+          $ref: '#/components/schemas/AnalystId'
+      additionalProperties: false
+    DecisionReason:
+      type: string
+      minLength: 1
+      maxLength: 4000
+      description: Required, for the audit trail.
+      example: Counterparties are payroll accounts of the same employer; pattern is benign.
+    AnalystId:
+      type: string
+      minLength: 1
+      maxLength: 128
+      description: Who decided. Supplied by the caller until authentication exists.
+      example: analyst-07
+    Decision:
+      type: object
+      required: [id, case_id, action, outcome, reason, analyst_id, created_at]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        case_id:
+          $ref: '#/components/schemas/Uuid'
+        action:
+          type: string
+          enum: [APPROVE, OVERRIDE]
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reason:
+          $ref: '#/components/schemas/DecisionReason'
+        analyst_id:
+          $ref: '#/components/schemas/AnalystId'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+
+    NextCursor:
+      description: Pass as `cursor` for the next page; `null` on the last page.
+      oneOf:
+        - type: string
+        - type: 'null'
+    TotalEstimate:
+      type: integer
+      minimum: 0
+      description: Approximate count of matching items across all pages. Not exact; don't page by it.
