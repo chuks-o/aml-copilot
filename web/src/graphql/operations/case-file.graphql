@@ -1,0 +1,97 @@
+query CaseFile($id: ID!) {
+  case(id: $id) {
+    ...CaseFileFields
+  }
+}
+
+mutation DecideCase($input: DecideCaseInput!) {
+  decideCase(input: $input) {
+    __typename
+    ... on DecideCaseSuccess {
+      case {
+        ...CaseFileFields
+      }
+    }
+    ... on VersionConflict {
+      currentVersion
+      case {
+        ...CaseFileFields
+      }
+    }
+    ... on InvalidTransition {
+      from
+      allowedFrom
+    }
+    ... on UserError {
+      message
+    }
+  }
+}
+
+subscription CaseFileUpdates($id: ID!) {
+  caseUpdated(id: $id) {
+    ...CaseFileFields
+  }
+}
+
+fragment CaseFileFields on Case {
+  id
+  status
+  decision
+  typology
+  confidence
+  score
+  version
+  updatedAt
+  missingEvidence
+  alert {
+    id
+    score
+    typology
+    reason
+    modelVersion
+    createdAt
+  }
+  account {
+    id
+    bankId
+    bankName
+    accountNumber
+    entityId
+    entityName
+    entityType
+  }
+  claims {
+    id
+    text
+    verified
+    citations {
+      id
+      ts
+      fromAccountId
+      toAccountId
+      amountPaid {
+        amount
+        currency
+      }
+      amountReceived {
+        amount
+        currency
+      }
+      paymentFormat
+    }
+  }
+  run {
+    steps
+    tokens
+    costUsd
+    durationMs
+  }
+  review {
+    kind
+    decision
+    reason
+    analystId
+    decidedAt
+  }
+}

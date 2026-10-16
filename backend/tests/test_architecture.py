@@ -41,3 +41,9 @@ def test_only_api_and_entry_points_may_import_db() -> None:
     allowed = {"aml.api", "aml.cli", "aml.__main__", "aml.db"}
 
     assert set(contract["source_modules"]) == _top_level_modules() - allowed
+
+
+def test_only_clients_may_import_httpx() -> None:
+    contract = _contract("http-only-via-clients")
+
+    assert set(contract["source_modules"]) == _top_level_modules() - {"aml.clients"}

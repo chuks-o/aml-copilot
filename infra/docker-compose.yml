@@ -11,6 +11,7 @@ x-backend: &backend
   environment:
     AML_POSTGRES_HOST: postgres
     AML_RABBITMQ_HOST: rabbitmq
+    AML_CASES_API_URL: http://api:8000
   init: true
 
 x-needs-infra: &needs-infra
@@ -73,6 +74,7 @@ services:
     environment:
       AML_POSTGRES_HOST: postgres
       AML_RABBITMQ_HOST: rabbitmq
+      AML_CASES_API_URL: http://api:8000
       AML_API_HOST: 0.0.0.0
       AML_API_PORT: "8000"
     ports:
@@ -112,6 +114,8 @@ services:
     image: aml-copilot/web:local
     build: ../web
     env_file: ../.env
+    environment:
+      AML_CASES_API_URL: http://api:8000
     init: true
     ports:
       - "127.0.0.1:3000:3000"

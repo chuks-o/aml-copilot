@@ -1,0 +1,8 @@
+# openapi-python-client config, used by `make codegen`.
+# Output: src/aml/clients/cases_api (Ruff-formatted, excluded from Ruff lint).
+# Rationale: docs/decisions/0018-generated-clients.md.
+package_name_override: cases_api
+post_hooks:
+  # Format only, with the locked Ruff and our pyproject settings. No `ruff check --fix`:
+  # lint autofixes on generated code would make the output depend on lint rules.
+  - ruff format .

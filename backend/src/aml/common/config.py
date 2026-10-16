@@ -32,6 +32,9 @@ class Settings(BaseSettings):
 
     api_host: str = "127.0.0.1"
     api_port: int = 8000
+    # Where callers reach the API (aml.clients). Differs from api_host/port in containers.
+    cases_api_url: str = "http://127.0.0.1:8000"
+    cases_api_timeout: float = 10.0
 
     postgres_host: str = "localhost"
     postgres_port: int = 5432

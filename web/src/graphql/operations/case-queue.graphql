@@ -1,0 +1,37 @@
+query CaseQueue($first: Int!, $after: String, $status: CaseStatus, $typology: Typology) {
+  cases(first: $first, after: $after, status: $status, typology: $typology) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        ...CaseQueueRow
+      }
+    }
+  }
+}
+
+subscription CaseQueueUpdates {
+  caseUpdated {
+    ...CaseQueueRow
+  }
+}
+
+fragment CaseQueueRow on Case {
+  id
+  status
+  decision
+  typology
+  confidence
+  score
+  version
+  updatedAt
+  account {
+    id
+    entityName
+    bankName
+  }
+}
