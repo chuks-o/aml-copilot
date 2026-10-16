@@ -3,9 +3,10 @@
 
 WEB := pnpm --dir web
 BACKEND := $(MAKE) --no-print-directory -C backend
+COMPOSE := docker compose -f infra/docker-compose.yml
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint fmt typecheck test codegen up down migrate seed replay eval-smoke
+.PHONY: help install lint fmt typecheck test codegen up down migrate seed replay eval-smoke env-check
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
@@ -33,11 +34,11 @@ test: ## Vitest (web); pytest (backend)
 codegen: ## Generate GraphQL types into web/src/generated
 	@echo "TODO: graphql-codegen from web/src/graphql/schema.graphql -> web/src/generated"
 
-up: ## Start the local stack
-	@echo "TODO: docker compose -f infra/compose.yaml up -d"
+up: env-check ## Build images, start the stack, wait until every service is healthy
+	$(COMPOSE) up -d --build --wait
 
-down: ## Stop the local stack
-	@echo "TODO: docker compose -f infra/compose.yaml down"
+down: ## Stop the stack and delete its volumes (database included)
+	$(COMPOSE) down -v
 
 migrate: ## Apply database migrations
 	$(BACKEND) migrate
@@ -45,8 +46,11 @@ migrate: ## Apply database migrations
 seed: ## Load starter data
 	$(BACKEND) seed
 
-replay: ## Replay HI-Small transactions
-	$(BACKEND) replay
+replay: env-check ## Replay HI-Small transactions (replayer container, "tools" profile)
+	$(COMPOSE) --profile tools run --rm --build replayer
 
 eval-smoke: ## Quick evaluation run
 	$(BACKEND) eval-smoke
+
+env-check:
+	@test -f .env || { echo "Missing .env. Run: cp .env.example .env"; exit 1; }
