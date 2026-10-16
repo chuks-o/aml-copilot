@@ -1,0 +1,55 @@
+# Redocly CLI config for openapi.yaml. Run with `make lint-api` (part of `make lint`).
+# Rationale: docs/decisions/0014-cases-api-contract.md.
+
+extends:
+  - recommended-strict # recommended rules, warnings promoted to errors
+
+plugins:
+  - ./redocly/rules.js
+
+rules:
+  # No authentication exists yet (decision 0014). Re-enable when it lands.
+  security-defined: off
+
+  # Every 4xx/5xx response is application/problem+json and nothing else.
+  rule/errors-are-problem-json:
+    subject:
+      type: MediaTypesMap
+    where:
+      - subject:
+          type: Response
+          filterInParentKeys: ['400', '401', '403', '404', '405', '406', '409', '410', '412', '413', '415', '422', '428', '429', '500', '501', '502', '503', '504']
+        assertions:
+          defined: true
+    assertions:
+      enum: [application/problem+json]
+      required: [application/problem+json]
+    message: 4xx/5xx responses must be application/problem+json only.
+    severity: error
+
+  # 429 and 503 must tell the client when to retry.
+  rule/retry-after-has-headers:
+    subject:
+      type: Response
+      property: headers
+      filterInParentKeys: ['429', '503']
+    assertions:
+      defined: true
+    message: 429 and 503 responses must declare a Retry-After header.
+    severity: error
+  rule/retry-after-is-declared:
+    subject:
+      type: HeadersMap
+    where:
+      - subject:
+          type: Response
+          filterInParentKeys: ['429', '503']
+        assertions:
+          defined: true
+    assertions:
+      required: [Retry-After]
+    message: 429 and 503 responses must declare a Retry-After header.
+    severity: error
+
+  aml/post-requires-idempotency-key: error
+  aml/every-operation-declares-errors: error

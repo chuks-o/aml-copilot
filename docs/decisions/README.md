@@ -7,7 +7,7 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | # | Decision | Status |
 | --- | --- | --- |
 | [0001](0001-data-and-environment.md) | Data location, credentials, environment, loading | Accepted (T01); env part superseded by 0006 |
-| [0002](0002-account-identity.md) | An account is bank + account ID | Accepted (T01) |
+| [0002](0002-account-identity.md) | An account is bank + account ID | Superseded by 0015 |
 | [0003](0003-pattern-join.md) | Join patterns onto transactions by exact full row | Accepted (T01) |
 | [0004](0004-hard-negative-selection.md) | How hard-negative candidates are chosen | Accepted (T01) |
 | [0005](0005-repo-layout.md) | Repository layout: web, backend, infra | Accepted (T02) |
@@ -19,3 +19,5 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0011](0011-repo-layout-rationale.md) | Why the repo is laid out this way | Accepted (T04) |
 | [0012](0012-working-rules.md) | Working rules in CLAUDE.md | Accepted (T04) |
 | [0013](0013-local-stack.md) | Local stack with Docker Compose | Accepted (T03, recorded in T04) |
+| [0014](0014-cases-api-contract.md) | Cases API contract (`backend/openapi.yaml`) | Accepted (T05) |
+| [0015](0015-account-id-format.md) | Account id is `<bank>:<account>`, unpadded bank code | Accepted (T05) |

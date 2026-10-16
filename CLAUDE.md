@@ -28,7 +28,7 @@ Working rules for this repo. They apply to every change, human or agent. The rea
 
 | What | Command |
 | --- | --- |
-| Lint (ESLint, Prettier, Ruff, import-linter) | `make lint` |
+| Lint (ESLint, Prettier, Ruff, import-linter, Redocly on `backend/openapi.yaml`) | `make lint` (API contract alone: `make lint-api`) |
 | Types (tsc, mypy --strict) | `make typecheck` |
 | Tests (Vitest, pytest) | `make test` |
 | Whole stack, healthy | `make up` (stop and wipe with `make down`) |
