@@ -1,0 +1,141 @@
+# Local stack. Run from the repo root:  make up  /  make down  /  make replay
+# Every service reads the repo-root .env (copy .env.example); `environment:`
+# entries below override it for in-network hostnames.
+
+name: aml-copilot
+
+x-backend: &backend
+  image: aml-copilot/backend:local
+  build: ../backend
+  env_file: ../.env
+  environment:
+    AML_POSTGRES_HOST: postgres
+    AML_RABBITMQ_HOST: rabbitmq
+  init: true
+
+x-needs-infra: &needs-infra
+  postgres:
+    condition: service_healthy
+  rabbitmq:
+    condition: service_healthy
+
+x-needs-migrated-infra: &needs-migrated-infra
+  <<: *needs-infra
+  migrate:
+    condition: service_completed_successfully
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    env_file: ../.env
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      # -h 127.0.0.1 forces TCP: during first-boot init the image runs a temporary
+      # server on the Unix socket only, which would otherwise report "ready" early.
+      test: ["CMD-SHELL", 'pg_isready -q -h 127.0.0.1 -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+      start_interval: 1s
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    env_file: ../.env
+    volumes:
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/conf.d/20-definitions.conf:ro
+      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 60s
+      start_interval: 2s
+    restart: unless-stopped
+
+  migrate:
+    <<: *backend
+    command: ["aml", "migrate"]
+    depends_on: *needs-infra
+    restart: "no"
+
+  api:
+    <<: *backend
+    command: ["aml", "api"]
+    environment:
+      AML_POSTGRES_HOST: postgres
+      AML_RABBITMQ_HOST: rabbitmq
+      AML_API_HOST: 0.0.0.0
+      AML_API_PORT: "8000"
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on: *needs-migrated-infra
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)"
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+      start_interval: 1s
+    restart: unless-stopped
+
+  worker:
+    <<: *backend
+    command: ["aml", "worker"]
+    depends_on: *needs-migrated-infra
+    healthcheck:
+      # Healthy while the main loop has touched its heartbeat in the last 30 s
+      # (it touches it every 5 s), so a hung loop turns the container unhealthy.
+      test:
+        - CMD-SHELL
+        - test $$(( $$(date +%s) - $$(stat -c %Y /tmp/aml/worker.heartbeat) )) -lt 30
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+      start_interval: 1s
+    restart: unless-stopped
+
+  web:
+    image: aml-copilot/web:local
+    build: ../web
+    env_file: ../.env
+    init: true
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on: *needs-infra
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+      start_interval: 1s
+    restart: unless-stopped
+
+  replayer:
+    <<: *backend
+    command: ["aml", "replay"]
+    profiles: ["tools"]
+    volumes:
+      - ../backend/data/raw:/app/data/raw:ro
+    depends_on: *needs-migrated-infra
+
+volumes:
+  postgres-data:

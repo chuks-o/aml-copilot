@@ -5,9 +5,12 @@ description = "AML alert investigation backend"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "alembic>=1.16",
     "fastapi>=0.118",
+    "psycopg[binary]>=3.2",
     "pydantic>=2.11",
     "pydantic-settings>=2.11",
+    "sqlalchemy>=2.0",
     "structlog>=25.4",
     "typer>=0.19",
     "uvicorn>=0.37",
@@ -59,7 +62,7 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "N", "S"]
 strict = true
 python_version = "3.12"
 plugins = ["pydantic.mypy"]
-files = ["src", "tests"]
+files = ["src", "tests", "migrations"]
 
 [tool.pydantic-mypy]
 init_forbid_extra = true
@@ -81,7 +84,7 @@ root_package = "aml"
 id = "workers-use-http"
 name = "Workers reach aml.api over HTTP, not by import"
 type = "forbidden"
-source_modules = ["aml.ingest", "aml.investigator", "aml.scoring", "aml.evals"]
+source_modules = ["aml.ingest", "aml.investigator", "aml.scoring", "aml.evals", "aml.worker"]
 forbidden_modules = ["aml.api"]
 
 [[tool.importlinter.contracts]]
@@ -95,9 +98,11 @@ source_modules = [
     "aml.clients",
     "aml.common",
     "aml.data",
+    "aml.db",
     "aml.ingest",
     "aml.investigator",
     "aml.scoring",
+    "aml.worker",
 ]
 forbidden_modules = ["aml.evals"]
 ignore_imports = ["aml.cli -> aml.evals"]
@@ -114,8 +119,10 @@ forbidden_modules = [
     "aml.cli",
     "aml.clients",
     "aml.data",
+    "aml.db",
     "aml.evals",
     "aml.ingest",
     "aml.investigator",
     "aml.scoring",
+    "aml.worker",
 ]

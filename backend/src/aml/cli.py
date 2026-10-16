@@ -5,7 +5,9 @@ from typing import Annotated
 import typer
 import uvicorn
 
-from aml.common import get_settings
+from aml import db
+from aml import worker as worker_loop
+from aml.common import configure_logging, get_settings
 
 app = typer.Typer(help="aml-copilot backend.", no_args_is_help=True, add_completion=False)
 
@@ -33,8 +35,12 @@ def api(
 
 @app.command()
 def worker() -> None:
-    """Run background jobs (scoring, investigations)."""
-    _not_implemented("worker")
+    """Run background jobs (scoring, investigations). Touches a heartbeat file every few seconds."""
+    settings = get_settings()
+    configure_logging("aml-worker", settings.log_level)
+    worker_loop.run_until_signalled(
+        settings.worker_heartbeat_path, settings.worker_heartbeat_interval
+    )
 
 
 @app.command()
@@ -45,8 +51,10 @@ def replay() -> None:
 
 @app.command()
 def migrate() -> None:
-    """Apply database migrations."""
-    _not_implemented("migrate")
+    """Apply database migrations (alembic upgrade head)."""
+    settings = get_settings()
+    configure_logging("aml-migrate", settings.log_level)
+    db.upgrade_to_head(settings.migrations_dir)
 
 
 @app.command()

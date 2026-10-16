@@ -14,7 +14,7 @@ def test_lists_all_commands() -> None:
         assert command in result.output
 
 
-@pytest.mark.parametrize("command", ["worker", "replay", "migrate", "seed", "train", "eval"])
+@pytest.mark.parametrize("command", ["replay", "seed", "train", "eval"])
 def test_stub_commands_say_not_implemented(command: str) -> None:
     result = runner.invoke(app, [command])
 
@@ -48,3 +48,13 @@ def test_api_starts_uvicorn_with_settings(monkeypatch: pytest.MonkeyPatch) -> No
             "log_config": None,
         }
     ]
+
+
+def test_migrate_upgrades_to_head_from_configured_dir(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[object] = []
+    monkeypatch.setattr("aml.cli.db.upgrade_to_head", calls.append)
+
+    result = runner.invoke(app, ["migrate"])
+
+    assert result.exit_code == 0
+    assert [str(c) for c in calls] == ["migrations"]
