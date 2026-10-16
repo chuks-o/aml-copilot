@@ -18,3 +18,4 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0010](0010-quality-gates-and-ci.md) | Lint, type-check, test and CI | Accepted (T02) |
 | [0011](0011-repo-layout-rationale.md) | Why the repo is laid out this way | Accepted (T04) |
 | [0012](0012-working-rules.md) | Working rules in CLAUDE.md | Accepted (T04) |
+| [0013](0013-local-stack.md) | Local stack with Docker Compose | Accepted (T03, recorded in T04) |
