@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: aml-copilot Cases API
-  version: 0.1.0
+  version: 0.2.0
   summary: Alerts, accounts, transactions and investigation cases.
   description: |
     The REST API served by `aml.api`. **This file is the source of truth.** The server is
@@ -30,7 +30,8 @@ info:
     - **Out of scope.** `GET /healthz` (process liveness, see decision 0007) is served by the
       same process but is an ops endpoint, not part of this contract.
     - **Concurrency.** Cases carry a `version`, also sent as a strong `ETag` (`"3"`).
-      `PATCH` requires a matching `If-Match`.
+      Every call that changes a case (`PATCH` its status, `POST` a decision) requires a
+      matching `If-Match`.
   license:
     name: Proprietary
     identifier: LicenseRef-Proprietary
@@ -389,16 +390,18 @@ paths:
       operationId: changeCaseStatus
       summary: Move a case to a new status
       description: |
-        Allowed transitions (anything else returns 409):
+        The full state machine:
 
-        | From | To |
-        | --- | --- |
-        | `OPEN` | `INVESTIGATING` |
-        | `INVESTIGATING` | `COMPLETE`, `NEEDS_HUMAN` |
-        | `COMPLETE`, `NEEDS_HUMAN` | `ESCALATED`, `CLOSED` |
+        | From | To | Via |
+        | --- | --- | --- |
+        | `OPEN` | `INVESTIGATING` | this endpoint |
+        | `INVESTIGATING` | `COMPLETE`, `NEEDS_HUMAN` | this endpoint |
+        | `COMPLETE`, `NEEDS_HUMAN` | `ESCALATED`, `CLOSED` | `POST /cases/{case_id}/decisions` only |
 
-        `ESCALATED` and `CLOSED` are final. The same table is machine-readable as
-        `x-transitions` on the `CaseStatus` schema.
+        `ESCALATED` and `CLOSED` are final, and are reached only by recording an analyst
+        decision, so no case closes without a review. The same table is machine-readable as
+        `x-transitions` and `x-decision-only` on the `CaseStatus` schema.
+        - Any transition not marked "this endpoint" returns 409.
         - Missing `If-Match` returns 428.
         - A stale version returns 412.
         - On success `version` goes up by one.
@@ -444,19 +447,22 @@ paths:
     post:
       tags: [cases]
       operationId: createCaseDecision
-      summary: Record an analyst decision
+      summary: Decide a case
       description: |
         The analyst approves the copilot's recommendation, or overrides it with a different
         outcome. A reason is always required.
-        - Allowed only when the case is `COMPLETE` or `NEEDS_HUMAN`, and only once per case.
-        - `APPROVE` needs a recommendation on the case. `OVERRIDE` must choose a different
-          outcome from it.
-        - Any of these violated returns 409.
 
-        Recording a decision does **not** change the case status. Move the case to
-        `ESCALATED` or `CLOSED` with `PATCH /cases/{case_id}/status`.
+        In one transaction this records the decision and moves the case to `ESCALATED`
+        (outcome `ESCALATE`) or `CLOSED` (outcome `CLOSE`). `version` goes up by one. Either
+        both happen or neither does.
+        - Allowed only when the case is `COMPLETE` or `NEEDS_HUMAN`; otherwise, including a
+          case already decided, 409.
+        - `APPROVE` needs a recommendation on the case, and `OVERRIDE` must choose a different
+          outcome from it; otherwise 409.
+        - Missing `If-Match` returns 428. A stale version returns 412.
       parameters:
         - $ref: '#/components/parameters/CaseId'
+        - $ref: '#/components/parameters/IfMatch'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -465,20 +471,29 @@ paths:
             schema:
               $ref: '#/components/schemas/DecisionCreate'
       responses:
-        '201':
-          description: Recorded, or the stored response for a repeated `Idempotency-Key`.
+        '200':
+          description: |
+            The decided case, with `decision` set. Also the stored response for a repeated
+            `Idempotency-Key`.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Decision'
+                $ref: '#/components/schemas/Case'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '422':
           $ref: '#/components/responses/UnprocessableContent'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -969,6 +984,7 @@ components:
         NEEDS_HUMAN: [ESCALATED, CLOSED]
         ESCALATED: []
         CLOSED: []
+      x-decision-only: [ESCALATED, CLOSED]
     Outcome:
       type: string
       description: What should happen to the case.
