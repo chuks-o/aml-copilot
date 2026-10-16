@@ -126,3 +126,19 @@ forbidden_modules = [
     "aml.scoring",
     "aml.worker",
 ]
+
+[[tool.importlinter.contracts]]
+id = "db-belongs-to-api"
+name = "Only aml.api (and the CLI entry points) import aml.db"
+type = "forbidden"
+source_modules = [
+    "aml.clients",
+    "aml.common",
+    "aml.data",
+    "aml.evals",
+    "aml.ingest",
+    "aml.investigator",
+    "aml.scoring",
+    "aml.worker",
+]
+forbidden_modules = ["aml.db"]

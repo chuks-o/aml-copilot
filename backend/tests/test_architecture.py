@@ -34,3 +34,10 @@ def test_common_is_barred_from_every_other_module() -> None:
     contract = _contract("common-is-foundation")
 
     assert set(contract["forbidden_modules"]) == _top_level_modules() - {"aml.common"}
+
+
+def test_only_api_and_entry_points_may_import_db() -> None:
+    contract = _contract("db-belongs-to-api")
+    allowed = {"aml.api", "aml.cli", "aml.__main__", "aml.db"}
+
+    assert set(contract["source_modules"]) == _top_level_modules() - allowed
