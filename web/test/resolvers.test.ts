@@ -10,8 +10,12 @@ const schema = buildSchema(
 );
 
 describe("graphql schema and resolvers", () => {
-  it("declares Query.health", () => {
-    expect(Object.keys(assertObjectType(schema.getQueryType()).getFields())).toEqual(["health"]);
+  it("declares the console queries", () => {
+    expect(Object.keys(assertObjectType(schema.getQueryType()).getFields())).toEqual([
+      "health",
+      "cases",
+      "case",
+    ]);
   });
 
   it("returns exactly the fields the Health type declares", () => {

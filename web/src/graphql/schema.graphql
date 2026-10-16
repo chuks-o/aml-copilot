@@ -1,13 +1,274 @@
 """
-Source of truth for the web GraphQL API, served from src/app/api/graphql/route.ts
-(GraphQL Yoga, T28). Types are generated into src/generated (make codegen).
+Source of truth for the web GraphQL API (the console's BFF), served from
+src/app/api/graphql/route.ts (GraphQL Yoga, T28). Types are generated into src/generated
+(make codegen). Resolvers call the aml REST API (backend/openapi.yaml).
+
+Design choices: docs/decisions/0016-console-graphql-schema.md.
+Operations the screens run: docs/graphql-queries.md.
 """
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+"RFC 3339 timestamp in UTC, e.g. 2022-09-01T00:20:00Z."
+scalar DateTime
+
+"Exact decimal as a string, e.g. \"3697.34\". Never a float."
+scalar Decimal
+
 type Query {
+  "Liveness of the web API itself."
   health: Health!
+
+  """
+  The case queue, newest first. Relay connection; forward pagination only.
+  `first` must be 1–100 (otherwise a BAD_USER_INPUT error).
+  """
+  cases(first: Int!, after: String, status: CaseStatus, typology: Typology): CaseConnection!
+
+  "One case, or null if it does not exist."
+  case(id: ID!): Case
+}
+
+type Mutation {
+  """
+  Record the analyst's decision and move the case to ESCALATED or CLOSED, atomically.
+  Expected failures (stale version, case not decidable) come back as members of the union;
+  only unexpected failures (not found, bad input, API down) are top-level errors.
+  """
+  decideCase(input: DecideCaseInput!): DecideCasePayload!
+}
+
+type Subscription {
+  """
+  Emits a case whenever it changes. With `id`, only that case (the case file screen);
+  without, every case (the queue). Null if the case was deleted.
+  """
+  caseUpdated(id: ID): Case
 }
 
 type Health {
   status: String!
   service: String!
   version: String!
+}
+
+# ---------------------------------------------------------------------------
+# Cases
+
+enum CaseStatus {
+  OPEN
+  INVESTIGATING
+  COMPLETE
+  NEEDS_HUMAN
+  ESCALATED
+  CLOSED
+}
+
+"Laundering pattern, as named in the HI-Small patterns file."
+enum Typology {
+  FAN_IN
+  FAN_OUT
+  CYCLE
+  BIPARTITE
+  STACK
+  SCATTER_GATHER
+  GATHER_SCATTER
+  RANDOM
+}
+
+"What should happen to a case."
+enum CaseDecision {
+  ESCALATE
+  CLOSE
+}
+
+type Case {
+  id: ID!
+  status: CaseStatus!
+  "The copilot's proposed decision. Null until the investigation finishes."
+  decision: CaseDecision
+  "Assigned during the investigation. Null until then."
+  typology: Typology
+  "The copilot's confidence in `decision`, 0–1. Null until the investigation finishes."
+  confidence: Float
+  "Model score of the alert that opened the case, 0–1. Higher is more suspicious."
+  score: Float!
+  "The alert that opened the case."
+  alert: Alert!
+  account: Account!
+  "The copilot's findings, in the order it presents them."
+  claims: [Claim!]!
+  "Evidence the copilot looked for and could not find."
+  missingEvidence: [String!]!
+  "Cost of the investigation run. Null until a run has started."
+  run: InvestigationRun
+  "The analyst's ruling on `decision`. Null until decided."
+  review: Review
+  "Goes up by one on every change. Send it back in decideCase."
+  version: Int!
+  updatedAt: DateTime!
+}
+
+type CaseConnection {
+  edges: [CaseEdge!]!
+  pageInfo: PageInfo!
+  "Approximate number of cases matching the filters, across all pages. Show as \"~N\"."
+  totalCount: Int!
+}
+
+type CaseEdge {
+  cursor: String!
+  node: Case!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  "Always false: the queue only pages forward."
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type Claim {
+  id: ID!
+  text: String!
+  "True when every citation was checked against the transaction data and supports the claim."
+  verified: Boolean!
+  "The transactions the claim rests on. Empty means the claim is uncited."
+  citations: [Transaction!]!
+}
+
+type InvestigationRun {
+  "Number of agent steps (model calls and tool calls)."
+  steps: Int!
+  "Total model tokens, input plus output."
+  tokens: Int!
+  costUsd: Decimal!
+  durationMs: Int!
+}
+
+enum ReviewKind {
+  "The analyst accepted the copilot's decision."
+  APPROVED
+  "The analyst chose a different decision."
+  OVERRIDDEN
+}
+
+type Review {
+  kind: ReviewKind!
+  "The decision that was applied."
+  decision: CaseDecision!
+  reason: String!
+  analystId: String!
+  decidedAt: DateTime!
+}
+
+# ---------------------------------------------------------------------------
+# Alerts, accounts, transactions
+
+type Alert {
+  id: ID!
+  score: Float!
+  "The model's guess at the pattern, if it made one."
+  typology: Typology
+  "Why the model raised the alert, in a sentence."
+  reason: String!
+  modelVersion: String!
+  createdAt: DateTime!
+}
+
+enum EntityType {
+  CORPORATION
+  PARTNERSHIP
+  SOLE_PROPRIETORSHIP
+  INDIVIDUAL
+  COUNTRY
+  DIRECT
+}
+
+"KYC profile: only what the dataset records."
+type Account {
+  "\"<bank>:<account>\", e.g. 10:8000EBD30."
+  id: ID!
+  bankId: String!
+  bankName: String!
+  accountNumber: String!
+  entityId: String!
+  entityName: String!
+  entityType: EntityType!
+}
+
+enum PaymentFormat {
+  ACH
+  BITCOIN
+  CASH
+  CHEQUE
+  CREDIT_CARD
+  REINVESTMENT
+  WIRE
+}
+
+type Money {
+  amount: Decimal!
+  "ISO 4217 code, or BTC."
+  currency: String!
+}
+
+type Transaction {
+  "64-bit integer id, sent as a string because GraphQL Int is 32-bit."
+  id: ID!
+  ts: DateTime!
+  fromAccountId: ID!
+  toAccountId: ID!
+  amountPaid: Money!
+  amountReceived: Money!
+  paymentFormat: PaymentFormat!
+}
+
+# ---------------------------------------------------------------------------
+# decideCase
+
+input DecideCaseInput {
+  caseId: ID!
+  "The version the analyst was looking at (Case.version)."
+  version: Int!
+  "ESCALATE or CLOSE. Approve vs override is derived by comparing it with Case.decision."
+  decision: CaseDecision!
+  "Required, non-blank: kept in the audit trail."
+  reason: String!
+}
+
+"""
+Exactly one of these. Branch on __typename. Every error member implements UserError,
+so `... on UserError { message }` also covers members added later.
+"""
+union DecideCasePayload = DecideCaseSuccess | VersionConflict | InvalidTransition
+
+"An expected failure the UI shows to the analyst."
+interface UserError {
+  message: String!
+}
+
+type DecideCaseSuccess {
+  "The case after the decision: status ESCALATED or CLOSED, review set, version + 1."
+  case: Case!
+}
+
+"Someone changed the case after the analyst loaded it. Nothing was saved."
+type VersionConflict implements UserError {
+  message: String!
+  currentVersion: Int!
+  "The case as it is now, so the UI can refresh without another request."
+  case: Case!
+}
+
+"The case is not in a state that can be decided (or was already decided). Nothing was saved."
+type InvalidTransition implements UserError {
+  message: String!
+  from: CaseStatus!
+  "Statuses from which a decision is allowed: COMPLETE, NEEDS_HUMAN."
+  allowedFrom: [CaseStatus!]!
 }

@@ -21,4 +21,5 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0013](0013-local-stack.md) | Local stack with Docker Compose | Accepted (T03, recorded in T04) |
 | [0014](0014-cases-api-contract.md) | Cases API contract (`backend/openapi.yaml`) | Accepted (T05); decision 6 superseded by 0017 |
 | [0015](0015-account-id-format.md) | Account id is `<bank>:<account>`, unpadded bank code | Accepted (T05) |
+| [0016](0016-console-graphql-schema.md) | Console GraphQL schema | Accepted (T06) |
 | [0017](0017-decisions-close-cases-atomically.md) | Recording a decision closes or escalates the case, atomically | Accepted (T06) |
