@@ -1,6 +1,8 @@
 # Decision records
 
-One file per decision area. Each record states the context, what we chose, what we rejected and why, and the consequences. Supersede a record by adding a new one and marking the old one's status; don't edit history away.
+One file per decision area. Each record states the context, what we chose, what we rejected and why, and the consequences. Supersede a record by adding a new one and marking the old one's status; don't edit history away. Numbers are append-only.
+
+New record: copy [0000-template.md](0000-template.md) to the next free number and add a row below in the same commit.
 
 | # | Decision | Status |
 | --- | --- | --- |
@@ -14,3 +16,4 @@ One file per decision area. Each record states the context, what we chose, what 
 | [0008](0008-web-app.md) | Web app structure and data clients | Accepted (T02) |
 | [0009](0009-import-boundaries.md) | Import boundaries (import-linter) | Accepted (T02) |
 | [0010](0010-quality-gates-and-ci.md) | Lint, type-check, test and CI | Accepted (T02) |
+| [0011](0011-repo-layout-rationale.md) | Why the repo is laid out this way | Accepted (T04) |
