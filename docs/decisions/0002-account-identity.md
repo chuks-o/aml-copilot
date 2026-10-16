@@ -1,6 +1,6 @@
 # 0002 — An account is identified by bank + account ID
 
-**Status:** Accepted · **Ticket:** T01 · **Date:** 2026-10-15
+**Status:** Superseded by [0015](0015-account-id-format.md) · **Ticket:** T01 · **Date:** 2026-10-15
 
 ## Context
 Each transaction has `From Bank`, `Account`, `To Bank`, `Account`. It is unclear whether account IDs are globally unique.
