@@ -17,7 +17,8 @@ Working rules for this repo. They apply to every change, human or agent. The rea
 ## Architecture rules
 
 - Processes talk only via REST (`aml.api`), GraphQL (the web app's `/api/graphql` route) or RabbitMQ.
-- Modules outside `aml.api` never import it; they use the generated client in `aml.clients` (added later). import-linter enforces this (`make lint`).
+- Modules outside `aml.api` never import it; they call it through the generated client in `aml.clients` (`cases_api_client()`). Only `aml.clients` may import `httpx`. import-linter enforces both (`make lint`).
+- Generated code (`web/src/generated/`, `backend/src/aml/clients/cases_api/`) is never edited by hand. Change the contract (`backend/openapi.yaml`, `web/src/graphql/`), run `make codegen` and commit the output; `make codegen-check` (and CI) fails otherwise.
 - Only `aml.api` owns the database: migrations live in `backend/migrations`, and only `aml.api` and the `aml` CLI may import `aml.db`. import-linter enforces this too.
 - All outbound network calls go through the retry helper in `aml.common` (added later). Don't write ad-hoc retry loops in the meantime.
 - No secrets in code. Configuration and credentials come from the environment (`.env`, documented in `.env.example`).
@@ -31,6 +32,7 @@ Working rules for this repo. They apply to every change, human or agent. The rea
 | Lint (ESLint, Prettier, Ruff, import-linter, Redocly on `backend/openapi.yaml`) | `make lint` (API contract alone: `make lint-api`) |
 | Types (tsc, mypy --strict) | `make typecheck` |
 | Tests (Vitest, pytest) | `make test` |
+| Generated clients up to date | `make codegen-check` |
 | Whole stack, healthy | `make up` (stop and wipe with `make down`) |
 
 `make help` lists every target.

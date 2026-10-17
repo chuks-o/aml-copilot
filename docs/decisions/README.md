@@ -23,3 +23,4 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0015](0015-account-id-format.md) | Account id is `<bank>:<account>`, unpadded bank code | Accepted (T05) |
 | [0016](0016-console-graphql-schema.md) | Console GraphQL schema | Accepted (T06) |
 | [0017](0017-decisions-close-cases-atomically.md) | Recording a decision closes or escalates the case, atomically | Accepted (T06) |
+| [0018](0018-generated-clients.md) | Generated clients, committed and checked for staleness | Accepted (T07) |

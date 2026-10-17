@@ -2,9 +2,11 @@
 
 The exact operations the two console screens send to `/api/graphql`. The schema is [`web/src/graphql/schema.graphql`](../web/src/graphql/schema.graphql), and the design choices are in [decision 0016](decisions/0016-console-graphql-schema.md).
 
-`web/test/graphql-operations.test.ts` parses every `graphql` block in this file and validates it against the schema, so the two can't drift apart. Change them together.
+The operations live in [`web/src/graphql/operations/`](../web/src/graphql/operations/). `make codegen` turns them into typed documents in `web/src/generated/graphql.ts`, and the screens pass those to urql's `useQuery`, `useMutation` and `useSubscription`. `web/test/graphql-operations.test.ts` checks that each block below is identical to its `.graphql` file, and codegen rejects any operation the schema doesn't allow. Change them together.
 
 ## Case queue screen
+
+Source: [`case-queue.graphql`](../web/src/graphql/operations/case-queue.graphql).
 
 A table of cases, newest first, filterable by status and typology, 50 rows per page, and live-updating.
 
@@ -54,6 +56,8 @@ fragment CaseQueueRow on Case {
 - `CaseQueueUpdates` is subscribed once while the screen is open. urql's cache merges each pushed row by `__typename` + `id`, so the matching row updates in place. A case that changes status may then belong to a different filter; the screen re-runs `CaseQueue` when a pushed case no longer matches the filter.
 
 ## Case file screen
+
+Source: [`case-file.graphql`](../web/src/graphql/operations/case-file.graphql).
 
 One case: the copilot's decision and confidence, the claims with their cited transactions, the evidence the copilot couldn't find, the run cost, the analyst's review, and the decision form.
 

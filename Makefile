@@ -4,12 +4,14 @@
 WEB := pnpm --dir web
 BACKEND := $(MAKE) --no-print-directory -C backend
 COMPOSE := docker compose -f infra/docker-compose.yml
+# Everything `make codegen` writes. Committed; `make codegen-check` keeps it current.
+GENERATED := web/src/generated backend/src/aml/clients/cases_api
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint lint-api fmt typecheck test codegen up down migrate seed replay eval-smoke env-check
+.PHONY: help install lint lint-api fmt codegen-check typecheck test codegen up down migrate seed replay eval-smoke env-check
 
 help: ## List targets
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
+	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
 
 install: ## Install web and backend dependencies from lockfiles
 	$(WEB) install --frozen-lockfile
@@ -34,8 +36,20 @@ test: ## Vitest (web); pytest (backend)
 	$(WEB) run test
 	$(BACKEND) test
 
-codegen: ## Generate GraphQL types into web/src/generated
-	@echo "TODO: graphql-codegen from web/src/graphql/schema.graphql -> web/src/generated"
+codegen: ## Regenerate typed clients from backend/openapi.yaml and web/src/graphql (commit the output)
+	$(WEB) run codegen
+	$(BACKEND) codegen
+
+codegen-check: ## Run codegen, then fail if the committed generated code changed
+	@$(MAKE) --no-print-directory codegen
+	@# git status, not git diff: a newly generated file is untracked, and git diff misses it.
+	@if [ -n "$$(git status --porcelain -- $(GENERATED))" ]; then \
+		echo "Generated code is stale. Run 'make codegen' and commit:"; \
+		git status --short -- $(GENERATED); \
+		git --no-pager diff --stat -- $(GENERATED); \
+		exit 1; \
+	fi
+	@echo "Generated code is up to date."
 
 up: env-check ## Build images, start the stack, wait until every service is healthy
 	$(COMPOSE) up -d --build --wait

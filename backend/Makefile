@@ -1,7 +1,7 @@
 # Backend tasks. Also called by the root Makefile.
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint fmt typecheck test migrate seed replay eval-smoke notebooks
+.PHONY: help install lint fmt typecheck test codegen migrate seed replay eval-smoke notebooks
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
@@ -23,6 +23,10 @@ typecheck: ## mypy --strict on src and tests
 
 test: ## pytest
 	uv run pytest
+
+codegen: ## Regenerate src/aml/clients/cases_api from openapi.yaml
+	uv run openapi-python-client generate --path openapi.yaml --meta none \
+		--output-path src/aml/clients/cases_api --overwrite --config openapi-python-client.yaml
 
 migrate: ## Apply database migrations
 	uv run aml migrate
