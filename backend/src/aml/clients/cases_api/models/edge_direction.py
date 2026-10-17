@@ -1,7 +1,7 @@
 from enum import StrEnum
 
 
-class CounterpartyEdgeDirection(StrEnum):
+class EdgeDirection(StrEnum):
     IN = "IN"
     OUT = "OUT"
 

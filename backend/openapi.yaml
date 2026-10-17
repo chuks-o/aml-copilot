@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: aml-copilot Cases API
-  version: 0.2.0
+  version: 0.2.1
   summary: Alerts, accounts, transactions and investigation cases.
   description: |
     The REST API served by `aml.api`. **This file is the source of truth.** The server is
@@ -185,15 +185,13 @@ paths:
           in: query
           description: Window start, inclusive. Omit to start at the first transaction.
           schema:
-            type: string
-            format: date-time
+            $ref: '#/components/schemas/Timestamp'
           example: '2022-09-01T00:00:00Z'
         - name: to
           in: query
           description: Window end, exclusive. Must be after `from`. Omit for no end.
           schema:
-            type: string
-            format: date-time
+            $ref: '#/components/schemas/Timestamp'
           example: '2022-09-08T00:00:00Z'
         - $ref: '#/components/parameters/Limit'
         - $ref: '#/components/parameters/Cursor'
@@ -237,9 +235,7 @@ paths:
           required: true
           description: Length of the window, in hours, ending at `as_of`.
           schema:
-            type: integer
-            minimum: 1
-            maximum: 8760
+            $ref: '#/components/schemas/WindowHours'
           example: 72
         - name: as_of
           in: query
@@ -247,17 +243,13 @@ paths:
             Window end, exclusive. Defaults to now. Pass the alert time when investigating
             historical data.
           schema:
-            type: string
-            format: date-time
+            $ref: '#/components/schemas/Timestamp'
           example: '2022-09-05T12:00:00Z'
         - name: limit
           in: query
           description: Maximum number of edges to return.
           schema:
-            type: integer
-            minimum: 1
-            maximum: 500
-            default: 100
+            $ref: '#/components/schemas/CounterpartyLimit'
       responses:
         '200':
           description: Aggregated edges.
@@ -529,18 +521,13 @@ components:
       in: query
       description: Page size.
       schema:
-        type: integer
-        minimum: 1
-        maximum: 500
-        default: 50
+        $ref: '#/components/schemas/PageLimit'
     Cursor:
       name: cursor
       in: query
       description: '`next_cursor` from the previous page. Opaque; do not build or parse it.'
       schema:
-        type: string
-        minLength: 1
-        maxLength: 512
+        $ref: '#/components/schemas/Cursor'
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -549,9 +536,7 @@ components:
         Unique per logical request; a UUID is recommended. Reuse it only when retrying the same
         request. Missing returns 400.
       schema:
-        type: string
-        minLength: 1
-        maxLength: 255
+        $ref: '#/components/schemas/IdempotencyKeyValue'
       example: 4f3c9a2e-8d1b-4c7e-9f6a-2b5d8e1c0a73
     IfMatch:
       name: If-Match
@@ -559,8 +544,7 @@ components:
       required: true
       description: The case's current `ETag`. Missing returns 428; stale returns 412.
       schema:
-        type: string
-        pattern: '^"[1-9][0-9]*"$'
+        $ref: '#/components/schemas/ETagValue'
       example: '"3"'
 
   headers:
@@ -572,8 +556,7 @@ components:
     ETag:
       description: Strong ETag holding the case `version`, e.g. `"3"`.
       schema:
-        type: string
-        pattern: '^"[1-9][0-9]*"$'
+        $ref: '#/components/schemas/ETagValue'
     RetryAfter:
       description: Seconds to wait before retrying.
       schema:
@@ -840,7 +823,7 @@ components:
           example: '10'
         bank_name:
           type: string
-          example: Canada Bank #27
+          example: 'Canada Bank #27'
         account_number:
           type: string
           pattern: '^[0-9A-F]+$'
@@ -943,8 +926,7 @@ components:
         counterparty_id:
           $ref: '#/components/schemas/AccountId'
         direction:
-          type: string
-          enum: [IN, OUT]
+          $ref: '#/components/schemas/EdgeDirection'
         transaction_count:
           type: integer
           minimum: 1
@@ -1155,6 +1137,35 @@ components:
         created_at:
           $ref: '#/components/schemas/Timestamp'
 
+    PageLimit:
+      type: integer
+      minimum: 1
+      maximum: 500
+      default: 50
+    Cursor:
+      type: string
+      minLength: 1
+      maxLength: 512
+    WindowHours:
+      type: integer
+      minimum: 1
+      maximum: 8760
+    CounterpartyLimit:
+      type: integer
+      minimum: 1
+      maximum: 500
+      default: 100
+    IdempotencyKeyValue:
+      type: string
+      minLength: 1
+      maxLength: 255
+    ETagValue:
+      type: string
+      description: A strong ETag holding a case version, e.g. `"3"`.
+      pattern: '^"[1-9][0-9]*"$'
+    EdgeDirection:
+      type: string
+      enum: [IN, OUT]
     NextCursor:
       description: Pass as `cursor` for the next page; `null` on the last page.
       oneOf:

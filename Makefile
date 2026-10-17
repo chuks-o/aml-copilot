@@ -5,10 +5,10 @@ WEB := pnpm --dir web
 BACKEND := $(MAKE) --no-print-directory -C backend
 COMPOSE := docker compose -f infra/docker-compose.yml
 # Everything `make codegen` writes. Committed; `make codegen-check` keeps it current.
-GENERATED := web/src/generated backend/src/aml/clients/cases_api
+GENERATED := web/src/generated backend/src/aml/clients/cases_api backend/src/aml/api/schemas.py
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint lint-api fmt codegen-check typecheck test codegen up down migrate seed replay eval-smoke env-check
+.PHONY: help install lint lint-api fmt codegen-check typecheck test contract codegen up down migrate seed replay eval-smoke env-check
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -35,6 +35,9 @@ typecheck: ## tsc (web); mypy --strict (backend)
 test: ## Vitest (web); pytest (backend)
 	$(WEB) run test
 	$(BACKEND) test
+
+contract: ## Contract test: Schemathesis against a live API server (SEED=<n> optional)
+	$(BACKEND) contract SEED=$(SEED)
 
 codegen: ## Regenerate typed clients from backend/openapi.yaml and web/src/graphql (commit the output)
 	$(WEB) run codegen

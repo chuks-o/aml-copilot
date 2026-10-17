@@ -12,6 +12,7 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 .import_linter_cache/
+.hypothesis/
 
 # Node / Next.js
 node_modules/

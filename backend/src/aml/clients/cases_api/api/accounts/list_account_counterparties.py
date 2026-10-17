@@ -21,7 +21,7 @@ def _get_kwargs(
     *,
     window_hours: int,
     as_of: datetime.datetime | Unset = UNSET,
-    limit: int | Unset = 100,
+    limit: int | Unset = UNSET,
 ) -> dict[str, Any]:
 
     params: dict[str, Any] = {}
@@ -109,7 +109,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     window_hours: int,
     as_of: datetime.datetime | Unset = UNSET,
-    limit: int | Unset = 100,
+    limit: int | Unset = UNSET,
 ) -> Response[CounterpartyList | Problem | ValidationProblem]:
     """Aggregate an account's counterparties
 
@@ -127,8 +127,8 @@ def sync_detailed(
             upper-case hex.
              Example: 10:8000EBD30.
         window_hours (int):
-        as_of (datetime.datetime | Unset):
-        limit (int | Unset):  Default: 100.
+        as_of (datetime.datetime | Unset):  Example: 2022-09-01T00:20:00Z.
+        limit (int | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -158,7 +158,7 @@ def sync(
     client: AuthenticatedClient | Client,
     window_hours: int,
     as_of: datetime.datetime | Unset = UNSET,
-    limit: int | Unset = 100,
+    limit: int | Unset = UNSET,
 ) -> CounterpartyList | Problem | ValidationProblem | None:
     """Aggregate an account's counterparties
 
@@ -176,8 +176,8 @@ def sync(
             upper-case hex.
              Example: 10:8000EBD30.
         window_hours (int):
-        as_of (datetime.datetime | Unset):
-        limit (int | Unset):  Default: 100.
+        as_of (datetime.datetime | Unset):  Example: 2022-09-01T00:20:00Z.
+        limit (int | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -202,7 +202,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     window_hours: int,
     as_of: datetime.datetime | Unset = UNSET,
-    limit: int | Unset = 100,
+    limit: int | Unset = UNSET,
 ) -> Response[CounterpartyList | Problem | ValidationProblem]:
     """Aggregate an account's counterparties
 
@@ -220,8 +220,8 @@ async def asyncio_detailed(
             upper-case hex.
              Example: 10:8000EBD30.
         window_hours (int):
-        as_of (datetime.datetime | Unset):
-        limit (int | Unset):  Default: 100.
+        as_of (datetime.datetime | Unset):  Example: 2022-09-01T00:20:00Z.
+        limit (int | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -249,7 +249,7 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     window_hours: int,
     as_of: datetime.datetime | Unset = UNSET,
-    limit: int | Unset = 100,
+    limit: int | Unset = UNSET,
 ) -> CounterpartyList | Problem | ValidationProblem | None:
     """Aggregate an account's counterparties
 
@@ -267,8 +267,8 @@ async def asyncio(
             upper-case hex.
              Example: 10:8000EBD30.
         window_hours (int):
-        as_of (datetime.datetime | Unset):
-        limit (int | Unset):  Default: 100.
+        as_of (datetime.datetime | Unset):  Example: 2022-09-01T00:20:00Z.
+        limit (int | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

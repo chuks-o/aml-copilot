@@ -354,7 +354,7 @@ export interface components {
             id: components["schemas"]["AccountId"];
             /** @example 10 */
             bank_id: string;
-            /** @example Canada Bank */
+            /** @example Canada Bank #27 */
             bank_name: string;
             /** @example 8000EBD30 */
             account_number: string;
@@ -405,8 +405,7 @@ export interface components {
         };
         CounterpartyEdge: {
             counterparty_id: components["schemas"]["AccountId"];
-            /** @enum {string} */
-            direction: "IN" | "OUT";
+            direction: components["schemas"]["EdgeDirection"];
             transaction_count: number;
             total: components["schemas"]["Money"];
             first_ts: components["schemas"]["Timestamp"];
@@ -510,6 +509,17 @@ export interface components {
             analyst_id: components["schemas"]["AnalystId"];
             created_at: components["schemas"]["Timestamp"];
         };
+        /** @default 50 */
+        PageLimit: number;
+        Cursor: string;
+        WindowHours: number;
+        /** @default 100 */
+        CounterpartyLimit: number;
+        IdempotencyKeyValue: string;
+        /** @description A strong ETag holding a case version, e.g. `"3"`. */
+        ETagValue: string;
+        /** @enum {string} */
+        EdgeDirection: "IN" | "OUT";
         /** @description Pass as `cursor` for the next page; `null` on the last page. */
         NextCursor: string | null;
         /** @description Approximate count of matching items across all pages. Not exact; don't page by it. */
@@ -614,27 +624,27 @@ export interface components {
         /** @description `"<bank>:<account>"`. `:` is legal in a path segment and needs no escaping. */
         AccountId: components["schemas"]["AccountId"];
         /** @description Page size. */
-        Limit: number;
+        Limit: components["schemas"]["PageLimit"];
         /** @description `next_cursor` from the previous page. Opaque; do not build or parse it. */
-        Cursor: string;
+        Cursor: components["schemas"]["Cursor"];
         /**
          * @description Unique per logical request; a UUID is recommended. Reuse it only when retrying the same
          *     request. Missing returns 400.
          * @example 4f3c9a2e-8d1b-4c7e-9f6a-2b5d8e1c0a73
          */
-        IdempotencyKey: string;
+        IdempotencyKey: components["schemas"]["IdempotencyKeyValue"];
         /**
          * @description The case's current `ETag`. Missing returns 428; stale returns 412.
          * @example "3"
          */
-        IfMatch: string;
+        IfMatch: components["schemas"]["ETagValue"];
     };
     requestBodies: never;
     headers: {
         /** @description URL of the created resource. */
         Location: string;
         /** @description Strong ETag holding the case `version`, e.g. `"3"`. */
-        ETag: string;
+        ETag: components["schemas"]["ETagValue"];
         /** @description Seconds to wait before retrying. */
         RetryAfter: number;
     };
@@ -775,12 +785,12 @@ export interface operations {
                  * @description Window start, inclusive. Omit to start at the first transaction.
                  * @example 2022-09-01T00:00:00Z
                  */
-                from?: string;
+                from?: components["schemas"]["Timestamp"];
                 /**
                  * @description Window end, exclusive. Must be after `from`. Omit for no end.
                  * @example 2022-09-08T00:00:00Z
                  */
-                to?: string;
+                to?: components["schemas"]["Timestamp"];
                 /** @description Page size. */
                 limit?: components["parameters"]["Limit"];
                 /** @description `next_cursor` from the previous page. Opaque; do not build or parse it. */
@@ -819,15 +829,15 @@ export interface operations {
                  * @description Length of the window, in hours, ending at `as_of`.
                  * @example 72
                  */
-                window_hours: number;
+                window_hours: components["schemas"]["WindowHours"];
                 /**
                  * @description Window end, exclusive. Defaults to now. Pass the alert time when investigating
                  *     historical data.
                  * @example 2022-09-05T12:00:00Z
                  */
-                as_of?: string;
+                as_of?: components["schemas"]["Timestamp"];
                 /** @description Maximum number of edges to return. */
-                limit?: number;
+                limit?: components["schemas"]["CounterpartyLimit"];
             };
             header?: never;
             path: {

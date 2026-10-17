@@ -26,7 +26,7 @@ class Account:
             upper-case hex.
              Example: 10:8000EBD30.
         bank_id (str):  Example: 10.
-        bank_name (str):  Example: Canada Bank.
+        bank_name (str):  Example: Canada Bank #27.
         account_number (str):  Example: 8000EBD30.
         entity_id (str): The account holder. One entity can hold accounts at several banks. Example: 800C998A0.
         entity_name (str):  Example: Corporation #33520.

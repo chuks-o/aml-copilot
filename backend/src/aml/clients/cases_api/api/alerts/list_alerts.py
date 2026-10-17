@@ -19,7 +19,7 @@ from typing import cast
 def _get_kwargs(
     *,
     status: AlertStatus | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> dict[str, Any]:
 
@@ -100,7 +100,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     status: AlertStatus | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> Response[AlertPage | Problem | ValidationProblem]:
     """List alerts
@@ -110,7 +110,7 @@ def sync_detailed(
     Args:
         status (AlertStatus | Unset): `OPEN` until grouped into a case (`IN_CASE`) or dismissed
             (`DISMISSED`).
-        limit (int | Unset):  Default: 50.
+        limit (int | Unset):
         cursor (str | Unset):
 
     Raises:
@@ -138,7 +138,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     status: AlertStatus | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> AlertPage | Problem | ValidationProblem | None:
     """List alerts
@@ -148,7 +148,7 @@ def sync(
     Args:
         status (AlertStatus | Unset): `OPEN` until grouped into a case (`IN_CASE`) or dismissed
             (`DISMISSED`).
-        limit (int | Unset):  Default: 50.
+        limit (int | Unset):
         cursor (str | Unset):
 
     Raises:
@@ -171,7 +171,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     status: AlertStatus | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> Response[AlertPage | Problem | ValidationProblem]:
     """List alerts
@@ -181,7 +181,7 @@ async def asyncio_detailed(
     Args:
         status (AlertStatus | Unset): `OPEN` until grouped into a case (`IN_CASE`) or dismissed
             (`DISMISSED`).
-        limit (int | Unset):  Default: 50.
+        limit (int | Unset):
         cursor (str | Unset):
 
     Raises:
@@ -207,7 +207,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     status: AlertStatus | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> AlertPage | Problem | ValidationProblem | None:
     """List alerts
@@ -217,7 +217,7 @@ async def asyncio(
     Args:
         status (AlertStatus | Unset): `OPEN` until grouped into a case (`IN_CASE`) or dismissed
             (`DISMISSED`).
-        limit (int | Unset):  Default: 50.
+        limit (int | Unset):
         cursor (str | Unset):
 
     Raises:

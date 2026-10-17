@@ -13,11 +13,11 @@ from .case_page import CasePage
 from .case_status import CaseStatus
 from .case_status_change import CaseStatusChange
 from .counterparty_edge import CounterpartyEdge
-from .counterparty_edge_direction import CounterpartyEdgeDirection
 from .counterparty_list import CounterpartyList
 from .decision import Decision
 from .decision_action import DecisionAction
 from .direction import Direction
+from .edge_direction import EdgeDirection
 from .entity_type import EntityType
 from .money import Money
 from .outcome import Outcome
@@ -45,11 +45,11 @@ __all__ = (
     "CaseStatus",
     "CaseStatusChange",
     "CounterpartyEdge",
-    "CounterpartyEdgeDirection",
     "CounterpartyList",
     "Decision",
     "DecisionAction",
     "Direction",
+    "EdgeDirection",
     "EntityType",
     "Money",
     "Outcome",
