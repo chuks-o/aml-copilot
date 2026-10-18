@@ -1,6 +1,6 @@
 # 0013 — Local stack with Docker Compose
 
-**Status:** Accepted · **Ticket:** T03 (recorded in T04) · **Date:** 2026-10-16
+**Status:** Accepted; decision 5 (definitions at boot) superseded by [0021](0021-rabbitmq-definitions-after-boot.md) · **Ticket:** T03 (recorded in T04) · **Date:** 2026-10-16
 
 ## Context
 

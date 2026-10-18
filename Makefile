@@ -8,10 +8,10 @@ COMPOSE := docker compose -f infra/docker-compose.yml
 GENERATED := web/src/generated backend/src/aml/clients/cases_api backend/src/aml/api/schemas.py
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint lint-api fmt codegen-check typecheck test contract codegen up down migrate seed replay eval-smoke env-check
+.PHONY: help install lint lint-api fmt codegen-check typecheck test test-integration contract codegen up down migrate seed replay eval-smoke env-check
 
 help: ## List targets
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
+	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-17s %s\n", $$1, $$2}'
 
 install: ## Install web and backend dependencies from lockfiles
 	$(WEB) install --frozen-lockfile
@@ -32,9 +32,12 @@ typecheck: ## tsc (web); mypy --strict (backend)
 	$(WEB) run typecheck
 	$(BACKEND) typecheck
 
-test: ## Vitest (web); pytest (backend)
+test: ## Jest (web); pytest unit + contract (backend). No Docker needed
 	$(WEB) run test
 	$(BACKEND) test
+
+test-integration: ## pytest integration tests against real Postgres and RabbitMQ containers (needs Docker)
+	$(BACKEND) test-integration
 
 contract: ## Contract test: Schemathesis against a live API server (SEED=<n> optional)
 	$(BACKEND) contract SEED=$(SEED)

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "//": "ts-jest only: CommonJS output for Jest's stable (non-ESM) mode. Type-checking is `make typecheck` (tsc with tsconfig.json), which covers test/ too. See docs/decisions/0020.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node10",
+    "ignoreDeprecations": "6.0",
+    "verbatimModuleSyntax": false,
+    "isolatedModules": true,
+    "jsx": "react-jsx"
+  }
+}

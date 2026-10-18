@@ -24,6 +24,8 @@ x-needs-migrated-infra: &needs-migrated-infra
   <<: *needs-infra
   migrate:
     condition: service_completed_successfully
+  rabbitmq-definitions:
+    condition: service_completed_successfully
 
 services:
   postgres:
@@ -47,20 +49,40 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     env_file: ../.env
-    volumes:
-      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/conf.d/20-definitions.conf:ro
-      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    # No definitions at boot: importing them at boot makes RabbitMQ skip creating
+    # RABBITMQ_DEFAULT_USER and the "/" vhost. rabbitmq-definitions imports them after (0021).
     ports:
       - "127.0.0.1:5672:5672"
       - "127.0.0.1:15672:15672"
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      # Healthy = the app's own credentials work, not merely "the node answers a ping".
+      test: ["CMD-SHELL", 'rabbitmqctl -q authenticate_user "$${RABBITMQ_DEFAULT_USER}" "$${RABBITMQ_DEFAULT_PASS}"']
       interval: 10s
       timeout: 10s
       retries: 6
       start_period: 60s
       start_interval: 2s
     restart: unless-stopped
+
+  rabbitmq-definitions:
+    # One-shot: import the versioned topology through the management API, then exit.
+    image: curlimages/curl:8.22.0
+    env_file: ../.env
+    volumes:
+      - ./rabbitmq/definitions.json:/definitions.json:ro
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        curl --fail-with-body --silent --show-error
+        --retry 30 --retry-delay 2 --retry-all-errors
+        -u "$${RABBITMQ_DEFAULT_USER}:$${RABBITMQ_DEFAULT_PASS}"
+        -H 'content-type: application/json' --data-binary @/definitions.json
+        http://rabbitmq:15672/api/definitions
+        && echo 'definitions imported'
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: "no"
 
   migrate:
     <<: *backend

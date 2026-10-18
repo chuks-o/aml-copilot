@@ -4,7 +4,7 @@ from alembic.script import ScriptDirectory
 
 from aml.db import alembic_config
 
-MIGRATIONS = Path(__file__).resolve().parents[1] / "migrations"
+MIGRATIONS = Path(__file__).resolve().parents[2] / "migrations"
 
 
 def test_migrations_dir_loads_and_has_no_revisions_yet() -> None:

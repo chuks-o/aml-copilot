@@ -31,9 +31,13 @@ dev = [
     "mypy>=1.18",
     "openapi-python-client==0.29.1",
     "pytest>=8.4",
+    "pytest-asyncio==1.4.0",
+    "pytest-socket==0.8.1",
     "pyyaml>=6.0",
     "ruff>=0.13",
     "schemathesis==4.29.0",
+    "testcontainers[postgres,rabbitmq]==4.15.0",
+    "types-docker==7.2.0.20260923",
     "types-python-dateutil>=2.9",
     "types-pyyaml>=6.0",
 ]
@@ -75,6 +79,9 @@ strict = true
 python_version = "3.12"
 plugins = ["pydantic.mypy"]
 files = ["src", "tests", "migrations"]
+# One name per file: src/aml/... is `aml...`, tests/... is `tests...` (as pytest imports them).
+mypy_path = ["src", "."]
+explicit_package_bases = true
 
 # Generated client (0018): strict everywhere except one known false positive, where
 # Client.__exit__/__aexit__ forward `*args: Any` to httpx.
@@ -82,16 +89,43 @@ files = ["src", "tests", "migrations"]
 module = "aml.clients.cases_api.client"
 disable_error_code = ["arg-type"]
 
+# pika (AMQP client used by integration tests) ships no type information or stubs.
+[[tool.mypy.overrides]]
+module = ["pika", "pika.*"]
+ignore_missing_imports = true
+
 [tool.pydantic-mypy]
 init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
 
 [tool.pytest.ini_options]
-# Contract tests (Schemathesis against a live server) are opt-in: `make contract` (0019).
-addopts = ["--import-mode=importlib", "-q", "-m", "not contract"]
+# Tiers come from the directory (tests/conftest.py). The default selection is `make test`;
+# `make test-integration` passes `-m integration`, which overrides it (0020).
+# --allow-hosts: no test reaches beyond this machine (CLAUDE.md: never the internet).
+addopts = [
+    "--import-mode=importlib",
+    "-q",
+    "--strict-markers",
+    "-m",
+    "unit or contract",
+    "--allow-hosts=127.0.0.1,localhost,::1",
+    "--allow-unix-socket",
+]
 testpaths = ["tests"]
-markers = ["contract: runs Schemathesis against a live server (slow; `make contract`)"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "unit: fast, in-process tests (tests/unit; `make test`)",
+    "contract: Schemathesis against a live server (tests/contract; `make test`)",
+    "integration: real Postgres/RabbitMQ containers (tests/integration; `make test-integration`)",
+    "slow: takes more than a few seconds; deselect locally with -m 'not slow'",
+]
+filterwarnings = [
+    # Raised inside testcontainers' own RabbitMQ module, not by our code.
+    "ignore:The @wait_container_is_ready decorator is deprecated:DeprecationWarning:testcontainers",
+]
 
 # ---------------------------------------------------------------- architecture
 # Checked by `lint-imports` (make lint). tests/test_architecture.py fails if a

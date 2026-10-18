@@ -40,8 +40,10 @@ jobs:
       - run: make -C backend install
       - run: make -C backend lint
       - run: make -C backend typecheck
+      # Unit + contract tests.
       - run: make -C backend test
-      - run: make -C backend contract
+      # Real Postgres and RabbitMQ containers (GitHub's Ubuntu runners have Docker).
+      - run: make -C backend test-integration
 
   codegen:
     # Fails if backend/openapi.yaml or the GraphQL schema/operations changed without

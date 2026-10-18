@@ -18,7 +18,7 @@ Requires Node 22+, pnpm 9, [uv](https://docs.astral.sh/uv/), Python 3.12, and Do
 ```bash
 cp .env.example .env
 make install
-make lint typecheck test
+make lint typecheck test   # make test-integration needs Docker
 make help                 # all targets
 cd backend && uv run aml api   # http://127.0.0.1:8000/healthz
 ```

@@ -24,7 +24,6 @@ def test_client_targets_the_configured_url() -> None:
     assert str(httpx_client.base_url) == "http://api.test"
 
 
-@pytest.mark.anyio
 async def test_async_call_parses_problem_json() -> None:
     seen: list[httpx.Request] = []
 

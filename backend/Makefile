@@ -1,7 +1,7 @@
 # Backend tasks. Also called by the root Makefile.
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint fmt typecheck test contract codegen migrate seed replay eval-smoke notebooks
+.PHONY: help install lint fmt typecheck test test-integration contract codegen migrate seed replay eval-smoke notebooks
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
@@ -21,11 +21,14 @@ fmt: ## Auto-fix and format
 typecheck: ## mypy --strict on src and tests
 	uv run mypy
 
-test: ## pytest (without contract tests)
-	uv run pytest
+test: ## Unit and contract tests (no Docker needed)
+	uv run pytest -m "unit or contract"
 
-contract: ## Schemathesis against a live server (SEED=<n> to explore other inputs)
-	SCHEMATHESIS_SEED=$(SEED) uv run pytest -m contract -s -p no:cacheprovider tests/test_contract.py
+test-integration: ## Integration tests against real Postgres and RabbitMQ containers (needs Docker)
+	uv run pytest -m integration
+
+contract: ## Contract test only, with its Schemathesis summary (SEED=<n> to explore other inputs)
+	SCHEMATHESIS_SEED=$(SEED) uv run pytest -m contract -s -p no:cacheprovider tests/contract
 
 codegen: ## Regenerate the client (src/aml/clients/cases_api) and server models (src/aml/api/schemas.py)
 	uv run openapi-python-client generate --path openapi.yaml --meta none \
