@@ -4,8 +4,7 @@ from sqlalchemy import Connection, text
 
 
 def test_migrations_ran(db: Connection) -> None:
-    # Alembic creates its bookkeeping table even with no revisions yet (T10 adds the first).
-    assert db.scalar(text("select to_regclass('public.alembic_version')")) == "alembic_version"
+    assert db.scalar(text("select version_num from alembic_version")) == "0001"
 
 
 def test_insert_and_read_a_row(db: Connection) -> None:
@@ -26,8 +25,7 @@ def test_rows_do_not_leak_between_tests(db: Connection) -> None:
 
 
 def test_pgvector_is_available(db: Connection) -> None:
-    db.execute(text("create extension if not exists vector"))
-
+    # Created by migration 0001.
     distance = db.scalar(text("select '[1,2,3]'::vector <-> '[1,2,4]'::vector"))
 
     assert distance == 1.0

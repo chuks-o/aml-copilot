@@ -27,3 +27,4 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0019](0019-stub-routes-and-contract-tests.md) | Stub routes from generated models, checked by Schemathesis | Accepted (T08); decision 6 opt-in superseded by 0020 |
 | [0020](0020-test-infrastructure.md) | Test infrastructure: tiers, real containers, Jest | Accepted (T09) |
 | [0021](0021-rabbitmq-definitions-after-boot.md) | RabbitMQ topology is imported after boot, not at boot | Accepted (T09) |
+| [0022](0022-schema-v1.md) | Schema v1 (migration 0001) | Accepted (T10) |
