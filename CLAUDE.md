@@ -23,7 +23,8 @@ Working rules for this repo. They apply to every change, human or agent. The rea
 - Only `aml.api` owns the database: migrations live in `backend/migrations`, and only `aml.api` and the `aml` CLI may import `aml.db`. import-linter enforces this too.
 - All outbound network calls go through the retry helper in `aml.common` (added later). Don't write ad-hoc retry loops in the meantime.
 - No secrets in code. Configuration and credentials come from the environment (`.env`, documented in `.env.example`).
-- Tests never call real LLM APIs or the internet. Fake or stub them.
+- Tests never call real LLM APIs or the internet. Fake or stub them (`FakeLLM` in `backend/tests/fixtures`). pytest-socket blocks anything but localhost.
+- Backend tests live in `tests/unit/`, `tests/integration/` or `tests/contract/`; the directory sets the marker. Integration tests use the container fixtures in `tests/fixtures/`, never the `make up` stack.
 - Conventional commits, one logical change per commit: `type(scope): summary`, where `scope` is the area (`web`, `backend`, `infra`, `docs`, `ci`), with the ticket as a trailer, e.g. `Refs: T04`.
 
 ## Checks
@@ -32,8 +33,9 @@ Working rules for this repo. They apply to every change, human or agent. The rea
 | --- | --- |
 | Lint (ESLint, Prettier, Ruff, import-linter, Redocly on `backend/openapi.yaml`) | `make lint` (API contract alone: `make lint-api`) |
 | Types (tsc, mypy --strict) | `make typecheck` |
-| Tests (Vitest, pytest) | `make test` |
-| Contract (Schemathesis against a live API) | `make contract` |
+| Tests: Jest (web), pytest unit + contract (backend) | `make test` |
+| Integration tests (real Postgres + RabbitMQ containers; needs Docker) | `make test-integration` |
+| Contract test alone, with the Schemathesis summary | `make contract` |
 | Generated clients up to date | `make codegen-check` |
 | Whole stack, healthy | `make up` (stop and wipe with `make down`) |
 

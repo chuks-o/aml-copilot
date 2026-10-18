@@ -13,7 +13,7 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0005](0005-repo-layout.md) | Repository layout: web, backend, infra | Accepted (T02) |
 | [0006](0006-toolchain-versions.md) | Toolchain versions | Accepted (T02) |
 | [0007](0007-backend-package-and-cli.md) | Backend: one `aml` package, one `aml` CLI | Accepted (T02) |
-| [0008](0008-web-app.md) | Web app structure and data clients | Accepted (T02) |
+| [0008](0008-web-app.md) | Web app structure and data clients | Accepted (T02); decision 6 superseded by 0020 |
 | [0009](0009-import-boundaries.md) | Import boundaries (import-linter) | Accepted (T02) |
 | [0010](0010-quality-gates-and-ci.md) | Lint, type-check, test and CI | Accepted (T02) |
 | [0011](0011-repo-layout-rationale.md) | Why the repo is laid out this way | Accepted (T04) |
@@ -24,5 +24,6 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0016](0016-console-graphql-schema.md) | Console GraphQL schema | Accepted (T06); decision 6 refined by 0019 |
 | [0017](0017-decisions-close-cases-atomically.md) | Recording a decision closes or escalates the case, atomically | Accepted (T06) |
 | [0018](0018-generated-clients.md) | Generated clients, committed and checked for staleness | Accepted (T07) |
-| [0019](0019-stub-routes-and-contract-tests.md) | Stub routes from generated models, checked by Schemathesis | Accepted (T08) |
+| [0019](0019-stub-routes-and-contract-tests.md) | Stub routes from generated models, checked by Schemathesis | Accepted (T08); decision 6 opt-in superseded by 0020 |
+| [0020](0020-test-infrastructure.md) | Test infrastructure: tiers, real containers, Jest | Accepted (T09) |
 | [0021](0021-rabbitmq-definitions-after-boot.md) | RabbitMQ topology is imported after boot, not at boot | Accepted (T09) |

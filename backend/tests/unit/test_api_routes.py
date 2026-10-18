@@ -15,7 +15,7 @@ from fastapi.routing import APIRoute
 from aml.api.app import app
 
 SPEC: dict[str, Any] = yaml.safe_load(
-    (Path(__file__).resolve().parents[1] / "openapi.yaml").read_text()
+    (Path(__file__).resolve().parents[2] / "openapi.yaml").read_text()
 )
 METHODS = {"get", "post", "put", "patch", "delete"}
 OPS_ONLY = {"/healthz"}  # served by the process, not part of the contract (0014)

@@ -1,6 +1,7 @@
 """Contract test: Schemathesis against a live server, with openapi.yaml as the spec.
 
-Opt-in (``-m contract``, ``make contract``) because it sends thousands of requests.
+Part of ``make test``; ``make contract`` runs it alone and shows the Schemathesis summary.
+Marked ``slow``: it sends about 2,500 requests (~15 s).
 Config (checks, seed, example budget) is in ``schemathesis.toml``.
 """
 
@@ -17,7 +18,7 @@ import uvicorn
 
 from aml.api.app import app
 
-BACKEND = Path(__file__).resolve().parents[1]
+BACKEND = Path(__file__).resolve().parents[2]
 SCHEMATHESIS = Path(sys.executable).parent / "schemathesis"
 
 
@@ -40,7 +41,7 @@ def live_server() -> Iterator[str]:
     thread.join(timeout=10)
 
 
-@pytest.mark.contract
+@pytest.mark.slow
 def test_api_conforms_to_openapi(live_server: str) -> None:
     command = [str(SCHEMATHESIS), "run", "openapi.yaml", "--url", live_server]
     if seed := os.environ.get("SCHEMATHESIS_SEED"):

@@ -1,6 +1,6 @@
 # 0019 — Stub routes from generated models, checked by Schemathesis
 
-**Status:** Accepted · **Ticket:** T08 · **Date:** 2026-10-17 · **Refines:** [0016](0016-console-graphql-schema.md) decision 6
+**Status:** Accepted; decision 6's opt-in superseded by [0020](0020-test-infrastructure.md) (`make test` runs contract tests) · **Ticket:** T08 · **Date:** 2026-10-17 · **Refines:** [0016](0016-console-graphql-schema.md) decision 6
 
 ## Context
 

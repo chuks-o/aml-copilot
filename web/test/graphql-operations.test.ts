@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import type { ResultOf, VariablesOf } from "@graphql-typed-document-node/core";
 import {
@@ -10,11 +11,12 @@ import {
   validate,
   type DocumentNode,
 } from "graphql";
-import { describe, expect, expectTypeOf, it } from "vitest";
+import { describe, expect, it } from "@jest/globals";
+import { expectTypeOf } from "expect-type";
 
 import type { CaseQueueDocument, DecideCaseDocument } from "@/generated/graphql";
 
-const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
+const read = (path: string) => readFileSync(join(__dirname, path), "utf8");
 
 const schema = buildSchema(read("../src/graphql/schema.graphql"));
 const operationFiles = {

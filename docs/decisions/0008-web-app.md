@@ -1,6 +1,6 @@
 # 0008 — Web app structure and data clients
 
-**Status:** Accepted · **Ticket:** T02 · **Date:** 2026-10-15
+**Status:** Accepted; decision 6 (Vitest) superseded by [0020](0020-test-infrastructure.md) · **Ticket:** T02 · **Date:** 2026-10-15
 
 ## Decisions
 

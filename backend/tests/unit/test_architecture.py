@@ -8,7 +8,7 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
-BACKEND = Path(__file__).resolve().parents[1]
+BACKEND = Path(__file__).resolve().parents[2]
 PACKAGE = BACKEND / "src" / "aml"
 
 
