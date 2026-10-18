@@ -8,7 +8,7 @@ COMPOSE := docker compose -f infra/docker-compose.yml
 GENERATED := web/src/generated backend/src/aml/clients/cases_api backend/src/aml/api/schemas.py
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint lint-api fmt codegen-check typecheck test test-integration contract codegen up down migrate seed replay eval-smoke env-check
+.PHONY: help install lint lint-api fmt codegen-check typecheck test test-integration contract codegen up down download migrate seed replay eval-smoke env-check
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-17s %s\n", $$1, $$2}'
@@ -66,7 +66,10 @@ down: ## Stop the stack and delete its volumes (database included)
 migrate: ## Apply database migrations
 	$(BACKEND) migrate
 
-seed: ## Load starter data
+download: ## Fetch the HI-Small files from Kaggle into backend/data/raw (skips files present)
+	$(BACKEND) download
+
+seed: ## Load HI-Small into the database (stack must be up: make up). Idempotent
 	$(BACKEND) seed
 
 replay: env-check ## Replay HI-Small transactions (replayer container, "tools" profile)

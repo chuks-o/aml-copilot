@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     rabbitmq_password: SecretStr = Field(validation_alias="RABBITMQ_DEFAULT_PASS")
 
     migrations_dir: Path = Path("migrations")
+    raw_data_dir: Path = Path("data/raw")  # HI-Small files (aml download, aml seed)
+    # Kaggle credentials for `aml download`, read from .env like everything else (the kaggle
+    # library itself only reads the real environment and ~/.kaggle/).
+    kaggle_api_token: SecretStr | None = Field(default=None, validation_alias="KAGGLE_API_TOKEN")
+    kaggle_username: str | None = Field(default=None, validation_alias="KAGGLE_USERNAME")
+    kaggle_key: SecretStr | None = Field(default=None, validation_alias="KAGGLE_KEY")
     worker_heartbeat_path: Path = Path("/tmp/aml/worker.heartbeat")  # noqa: S108
     worker_heartbeat_interval: float = 5.0
 

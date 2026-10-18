@@ -4,16 +4,9 @@ The round trip runs in its own database (same container) so it can't disturb the
 session-wide migrated database that other integration tests use.
 """
 
-from collections.abc import Iterator
-from uuid import uuid4
-
-import pytest
 from alembic import command
-from sqlalchemy import Engine, create_engine, text
-from sqlalchemy.engine import URL
-from testcontainers.community.postgres import PostgresContainer
+from sqlalchemy import Engine, text
 
-from aml.common import get_settings
 from aml.db import alembic_config
 from tests.fixtures.postgres import MIGRATIONS
 
@@ -33,38 +26,6 @@ TABLES = {
     "typology_docs",
 }
 PARTITIONS = {"transactions_2022_09", "transactions_default"}
-
-
-def _url(postgres: PostgresContainer, database: str) -> URL:
-    return URL.create(
-        "postgresql+psycopg",
-        username=postgres.username,
-        password=postgres.password,
-        host=postgres.get_container_host_ip(),
-        port=int(postgres.get_exposed_port(5432)),
-        database=database,
-    )
-
-
-@pytest.fixture
-def scratch_database(postgres: PostgresContainer) -> Iterator[Engine]:
-    """An empty database for this test, with settings (and so Alembic) pointed at it."""
-    name = f"roundtrip_{uuid4().hex[:12]}"
-    admin = create_engine(_url(postgres, postgres.dbname), isolation_level="AUTOCOMMIT")
-    with admin.connect() as connection:
-        connection.execute(text(f'CREATE DATABASE "{name}"'))
-    engine = create_engine(_url(postgres, name))
-    with pytest.MonkeyPatch.context() as env:
-        env.setenv("AML_POSTGRES_HOST", postgres.get_container_host_ip())
-        env.setenv("AML_POSTGRES_PORT", str(postgres.get_exposed_port(5432)))
-        env.setenv("POSTGRES_DB", name)
-        get_settings.cache_clear()
-        yield engine
-    get_settings.cache_clear()
-    engine.dispose()
-    with admin.connect() as connection:
-        connection.execute(text(f'DROP DATABASE "{name}" WITH (FORCE)'))
-    admin.dispose()
 
 
 def _schema(engine: Engine) -> dict[str, set[str]]:
