@@ -18,10 +18,11 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0010](0010-quality-gates-and-ci.md) | Lint, type-check, test and CI | Accepted (T02) |
 | [0011](0011-repo-layout-rationale.md) | Why the repo is laid out this way | Accepted (T04) |
 | [0012](0012-working-rules.md) | Working rules in CLAUDE.md | Accepted (T04) |
-| [0013](0013-local-stack.md) | Local stack with Docker Compose | Accepted (T03, recorded in T04) |
+| [0013](0013-local-stack.md) | Local stack with Docker Compose | Accepted (T03, recorded in T04); decision 5 superseded by 0021 |
 | [0014](0014-cases-api-contract.md) | Cases API contract (`backend/openapi.yaml`) | Accepted (T05); decision 6 superseded by 0017 |
 | [0015](0015-account-id-format.md) | Account id is `<bank>:<account>`, unpadded bank code | Accepted (T05) |
 | [0016](0016-console-graphql-schema.md) | Console GraphQL schema | Accepted (T06); decision 6 refined by 0019 |
 | [0017](0017-decisions-close-cases-atomically.md) | Recording a decision closes or escalates the case, atomically | Accepted (T06) |
 | [0018](0018-generated-clients.md) | Generated clients, committed and checked for staleness | Accepted (T07) |
 | [0019](0019-stub-routes-and-contract-tests.md) | Stub routes from generated models, checked by Schemathesis | Accepted (T08) |
+| [0021](0021-rabbitmq-definitions-after-boot.md) | RabbitMQ topology is imported after boot, not at boot | Accepted (T09) |
