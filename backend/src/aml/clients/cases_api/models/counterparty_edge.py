@@ -8,7 +8,7 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-from ..models.counterparty_edge_direction import CounterpartyEdgeDirection
+from ..models.edge_direction import EdgeDirection
 from typing import cast
 import datetime
 
@@ -26,7 +26,7 @@ class CounterpartyEdge:
         counterparty_id (str): `"<bank>:<account>"`. The bank code has no leading zeros; the account number is
             upper-case hex.
              Example: 10:8000EBD30.
-        direction (CounterpartyEdgeDirection):
+        direction (EdgeDirection):
         transaction_count (int):
         total (Money):
         first_ts (datetime.datetime):  Example: 2022-09-01T00:20:00Z.
@@ -34,7 +34,7 @@ class CounterpartyEdge:
     """
 
     counterparty_id: str
-    direction: CounterpartyEdgeDirection
+    direction: EdgeDirection
     transaction_count: int
     total: Money
     first_ts: datetime.datetime
@@ -78,7 +78,7 @@ class CounterpartyEdge:
         d = dict(src_dict)
         counterparty_id = d.pop("counterparty_id")
 
-        direction = CounterpartyEdgeDirection(d.pop("direction"))
+        direction = EdgeDirection(d.pop("direction"))
 
         transaction_count = d.pop("transaction_count")
 

@@ -21,7 +21,7 @@ def _get_kwargs(
     *,
     status: CaseStatus | Unset = UNSET,
     typology: Typology | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> dict[str, Any]:
 
@@ -109,7 +109,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     status: CaseStatus | Unset = UNSET,
     typology: Typology | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> Response[CasePage | Problem | ValidationProblem]:
     """List cases
@@ -120,7 +120,7 @@ def sync_detailed(
         status (CaseStatus | Unset): See `PATCH /cases/{case_id}/status` for the allowed
             transitions.
         typology (Typology | Unset): Laundering pattern, as named in the HI-Small patterns file.
-        limit (int | Unset):  Default: 50.
+        limit (int | Unset):
         cursor (str | Unset):
 
     Raises:
@@ -150,7 +150,7 @@ def sync(
     client: AuthenticatedClient | Client,
     status: CaseStatus | Unset = UNSET,
     typology: Typology | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> CasePage | Problem | ValidationProblem | None:
     """List cases
@@ -161,7 +161,7 @@ def sync(
         status (CaseStatus | Unset): See `PATCH /cases/{case_id}/status` for the allowed
             transitions.
         typology (Typology | Unset): Laundering pattern, as named in the HI-Small patterns file.
-        limit (int | Unset):  Default: 50.
+        limit (int | Unset):
         cursor (str | Unset):
 
     Raises:
@@ -186,7 +186,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     status: CaseStatus | Unset = UNSET,
     typology: Typology | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> Response[CasePage | Problem | ValidationProblem]:
     """List cases
@@ -197,7 +197,7 @@ async def asyncio_detailed(
         status (CaseStatus | Unset): See `PATCH /cases/{case_id}/status` for the allowed
             transitions.
         typology (Typology | Unset): Laundering pattern, as named in the HI-Small patterns file.
-        limit (int | Unset):  Default: 50.
+        limit (int | Unset):
         cursor (str | Unset):
 
     Raises:
@@ -225,7 +225,7 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     status: CaseStatus | Unset = UNSET,
     typology: Typology | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> CasePage | Problem | ValidationProblem | None:
     """List cases
@@ -236,7 +236,7 @@ async def asyncio(
         status (CaseStatus | Unset): See `PATCH /cases/{case_id}/status` for the allowed
             transitions.
         typology (Typology | Unset): Laundering pattern, as named in the HI-Small patterns file.
-        limit (int | Unset):  Default: 50.
+        limit (int | Unset):
         cursor (str | Unset):
 
     Raises:

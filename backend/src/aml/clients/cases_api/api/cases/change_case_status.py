@@ -137,7 +137,7 @@ def sync_detailed(
 
     Args:
         case_id (UUID):  Example: 0b6f1c1e-5d2a-4a8e-9a43-7c1d2e3f4a5b.
-        if_match (str):
+        if_match (str): A strong ETag holding a case version, e.g. `"3"`.
         body (CaseStatusChange):
 
     Raises:
@@ -188,7 +188,7 @@ def sync(
 
     Args:
         case_id (UUID):  Example: 0b6f1c1e-5d2a-4a8e-9a43-7c1d2e3f4a5b.
-        if_match (str):
+        if_match (str): A strong ETag holding a case version, e.g. `"3"`.
         body (CaseStatusChange):
 
     Raises:
@@ -234,7 +234,7 @@ async def asyncio_detailed(
 
     Args:
         case_id (UUID):  Example: 0b6f1c1e-5d2a-4a8e-9a43-7c1d2e3f4a5b.
-        if_match (str):
+        if_match (str): A strong ETag holding a case version, e.g. `"3"`.
         body (CaseStatusChange):
 
     Raises:
@@ -283,7 +283,7 @@ async def asyncio(
 
     Args:
         case_id (UUID):  Example: 0b6f1c1e-5d2a-4a8e-9a43-7c1d2e3f4a5b.
-        if_match (str):
+        if_match (str): A strong ETag holding a case version, e.g. `"3"`.
         body (CaseStatusChange):
 
     Raises:

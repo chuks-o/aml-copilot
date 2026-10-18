@@ -1,6 +1,6 @@
 # 0016 — Console GraphQL schema
 
-**Status:** Accepted · **Ticket:** T06 · **Date:** 2026-10-16
+**Status:** Accepted; decision 6 refined by [0019](0019-stub-routes-and-contract-tests.md) · **Ticket:** T06 · **Date:** 2026-10-16
 
 ## Context
 

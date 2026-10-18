@@ -1,0 +1,17 @@
+# Schemathesis config for the contract test (`make contract`; tests/test_contract.py).
+# Rationale: docs/decisions/0019-stub-routes-and-contract-tests.md.
+
+# Fixed seed and no example database: the same code always gets the same requests, so a
+# red CI run reproduces locally. `make contract SEED=<n>` explores other inputs.
+seed = 20220901
+
+[generation]
+max-examples = 100
+database = "none"
+
+# Exactly the three checks the contract promises; everything else is off.
+[checks]
+enabled = false
+not_a_server_error.enabled = true
+status_code_conformance.enabled = true
+response_schema_conformance.enabled = true

@@ -1,7 +1,7 @@
 # Backend tasks. Also called by the root Makefile.
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint fmt typecheck test codegen migrate seed replay eval-smoke notebooks
+.PHONY: help install lint fmt typecheck test contract codegen migrate seed replay eval-smoke notebooks
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
@@ -21,12 +21,22 @@ fmt: ## Auto-fix and format
 typecheck: ## mypy --strict on src and tests
 	uv run mypy
 
-test: ## pytest
+test: ## pytest (without contract tests)
 	uv run pytest
 
-codegen: ## Regenerate src/aml/clients/cases_api from openapi.yaml
+contract: ## Schemathesis against a live server (SEED=<n> to explore other inputs)
+	SCHEMATHESIS_SEED=$(SEED) uv run pytest -m contract -s -p no:cacheprovider tests/test_contract.py
+
+codegen: ## Regenerate the client (src/aml/clients/cases_api) and server models (src/aml/api/schemas.py)
 	uv run openapi-python-client generate --path openapi.yaml --meta none \
 		--output-path src/aml/clients/cases_api --overwrite --config openapi-python-client.yaml
+	uv run datamodel-codegen --input openapi.yaml --input-file-type openapi --openapi-scopes schemas \
+		--output-model-type pydantic_v2.BaseModel --target-python-version 3.12 \
+		--use-annotated --field-constraints --use-standard-collections --use-union-operator \
+		--use-type-alias --use-unique-items-as-set --disable-timestamp --formatters builtin \
+		--custom-file-header '# Generated from openapi.yaml by datamodel-codegen (make codegen). Do not edit.' \
+		--output src/aml/api/schemas.py
+	uv run ruff format --quiet src/aml/api/schemas.py
 
 migrate: ## Apply database migrations
 	uv run aml migrate

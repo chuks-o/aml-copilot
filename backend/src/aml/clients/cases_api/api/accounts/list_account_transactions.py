@@ -21,7 +21,7 @@ def _get_kwargs(
     *,
     from_: datetime.datetime | Unset = UNSET,
     to: datetime.datetime | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> dict[str, Any]:
 
@@ -115,7 +115,7 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     from_: datetime.datetime | Unset = UNSET,
     to: datetime.datetime | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> Response[Problem | TransactionPage | ValidationProblem]:
     """List an account's transactions
@@ -129,9 +129,9 @@ def sync_detailed(
             number is
             upper-case hex.
              Example: 10:8000EBD30.
-        from_ (datetime.datetime | Unset):
-        to (datetime.datetime | Unset):
-        limit (int | Unset):  Default: 50.
+        from_ (datetime.datetime | Unset):  Example: 2022-09-01T00:20:00Z.
+        to (datetime.datetime | Unset):  Example: 2022-09-01T00:20:00Z.
+        limit (int | Unset):
         cursor (str | Unset):
 
     Raises:
@@ -163,7 +163,7 @@ def sync(
     client: AuthenticatedClient | Client,
     from_: datetime.datetime | Unset = UNSET,
     to: datetime.datetime | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> Problem | TransactionPage | ValidationProblem | None:
     """List an account's transactions
@@ -177,9 +177,9 @@ def sync(
             number is
             upper-case hex.
              Example: 10:8000EBD30.
-        from_ (datetime.datetime | Unset):
-        to (datetime.datetime | Unset):
-        limit (int | Unset):  Default: 50.
+        from_ (datetime.datetime | Unset):  Example: 2022-09-01T00:20:00Z.
+        to (datetime.datetime | Unset):  Example: 2022-09-01T00:20:00Z.
+        limit (int | Unset):
         cursor (str | Unset):
 
     Raises:
@@ -206,7 +206,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     from_: datetime.datetime | Unset = UNSET,
     to: datetime.datetime | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> Response[Problem | TransactionPage | ValidationProblem]:
     """List an account's transactions
@@ -220,9 +220,9 @@ async def asyncio_detailed(
             number is
             upper-case hex.
              Example: 10:8000EBD30.
-        from_ (datetime.datetime | Unset):
-        to (datetime.datetime | Unset):
-        limit (int | Unset):  Default: 50.
+        from_ (datetime.datetime | Unset):  Example: 2022-09-01T00:20:00Z.
+        to (datetime.datetime | Unset):  Example: 2022-09-01T00:20:00Z.
+        limit (int | Unset):
         cursor (str | Unset):
 
     Raises:
@@ -252,7 +252,7 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     from_: datetime.datetime | Unset = UNSET,
     to: datetime.datetime | Unset = UNSET,
-    limit: int | Unset = 50,
+    limit: int | Unset = UNSET,
     cursor: str | Unset = UNSET,
 ) -> Problem | TransactionPage | ValidationProblem | None:
     """List an account's transactions
@@ -266,9 +266,9 @@ async def asyncio(
             number is
             upper-case hex.
              Example: 10:8000EBD30.
-        from_ (datetime.datetime | Unset):
-        to (datetime.datetime | Unset):
-        limit (int | Unset):  Default: 50.
+        from_ (datetime.datetime | Unset):  Example: 2022-09-01T00:20:00Z.
+        to (datetime.datetime | Unset):  Example: 2022-09-01T00:20:00Z.
+        limit (int | Unset):
         cursor (str | Unset):
 
     Raises:

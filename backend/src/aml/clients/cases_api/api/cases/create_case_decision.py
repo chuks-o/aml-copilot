@@ -141,7 +141,7 @@ def sync_detailed(
 
     Args:
         case_id (UUID):  Example: 0b6f1c1e-5d2a-4a8e-9a43-7c1d2e3f4a5b.
-        if_match (str):
+        if_match (str): A strong ETag holding a case version, e.g. `"3"`.
         idempotency_key (str):
         body (ApproveDecision | OverrideDecision): `APPROVE` takes the recommendation's outcome;
             `OVERRIDE` states a different one.
@@ -192,7 +192,7 @@ def sync(
 
     Args:
         case_id (UUID):  Example: 0b6f1c1e-5d2a-4a8e-9a43-7c1d2e3f4a5b.
-        if_match (str):
+        if_match (str): A strong ETag holding a case version, e.g. `"3"`.
         idempotency_key (str):
         body (ApproveDecision | OverrideDecision): `APPROVE` takes the recommendation's outcome;
             `OVERRIDE` states a different one.
@@ -238,7 +238,7 @@ async def asyncio_detailed(
 
     Args:
         case_id (UUID):  Example: 0b6f1c1e-5d2a-4a8e-9a43-7c1d2e3f4a5b.
-        if_match (str):
+        if_match (str): A strong ETag holding a case version, e.g. `"3"`.
         idempotency_key (str):
         body (ApproveDecision | OverrideDecision): `APPROVE` takes the recommendation's outcome;
             `OVERRIDE` states a different one.
@@ -287,7 +287,7 @@ async def asyncio(
 
     Args:
         case_id (UUID):  Example: 0b6f1c1e-5d2a-4a8e-9a43-7c1d2e3f4a5b.
-        if_match (str):
+        if_match (str): A strong ETag holding a case version, e.g. `"3"`.
         idempotency_key (str):
         body (ApproveDecision | OverrideDecision): `APPROVE` takes the recommendation's outcome;
             `OVERRIDE` states a different one.

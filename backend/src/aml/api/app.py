@@ -5,6 +5,8 @@ from importlib.metadata import version
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from aml.api import problems
+from aml.api.routes import accounts, alerts, cases
 from aml.common import configure_logging, get_logger, get_settings
 
 SERVICE = "aml-api"
@@ -29,6 +31,10 @@ def create_app() -> FastAPI:
         docs_url=None,
         redoc_url=None,
     )
+
+    problems.install(app)
+    for module in (alerts, accounts, cases):
+        app.include_router(module.router)
 
     @app.get("/healthz", tags=["ops"])
     def healthz() -> Health:

@@ -41,6 +41,7 @@ jobs:
       - run: make -C backend lint
       - run: make -C backend typecheck
       - run: make -C backend test
+      - run: make -C backend contract
 
   codegen:
     # Fails if backend/openapi.yaml or the GraphQL schema/operations changed without
