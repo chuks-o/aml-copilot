@@ -6,9 +6,11 @@ tests share the container but never see each other's rows.
 
 from collections.abc import Iterator
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
-from sqlalchemy import Connection, Engine, create_engine
+from sqlalchemy import Connection, Engine, create_engine, text
+from sqlalchemy.engine import URL
 from testcontainers.community.postgres import PostgresContainer
 
 from aml.common import get_settings
@@ -55,3 +57,36 @@ def db(migrated_engine: Engine) -> Iterator[Connection]:
             yield connection
         finally:
             transaction.rollback()
+
+
+def _url(postgres: PostgresContainer, database: str) -> URL:
+    return URL.create(
+        "postgresql+psycopg",
+        username=postgres.username,
+        password=postgres.password,
+        host=postgres.get_container_host_ip(),
+        port=int(postgres.get_exposed_port(5432)),
+        database=database,
+    )
+
+
+@pytest.fixture
+def scratch_database(postgres: PostgresContainer) -> Iterator[Engine]:
+    """An empty database for this test, with settings (and so Alembic and ``aml.db.connect``)
+    pointed at it. For tests that commit (migrations, seeding) and so can't share ``db``."""
+    name = f"roundtrip_{uuid4().hex[:12]}"
+    admin = create_engine(_url(postgres, postgres.dbname), isolation_level="AUTOCOMMIT")
+    with admin.connect() as connection:
+        connection.execute(text(f'CREATE DATABASE "{name}"'))
+    engine = create_engine(_url(postgres, name))
+    with pytest.MonkeyPatch.context() as env:
+        env.setenv("AML_POSTGRES_HOST", postgres.get_container_host_ip())
+        env.setenv("AML_POSTGRES_PORT", str(postgres.get_exposed_port(5432)))
+        env.setenv("POSTGRES_DB", name)
+        get_settings.cache_clear()
+        yield engine
+    get_settings.cache_clear()
+    engine.dispose()
+    with admin.connect() as connection:
+        connection.execute(text(f'DROP DATABASE "{name}" WITH (FORCE)'))
+    admin.dispose()

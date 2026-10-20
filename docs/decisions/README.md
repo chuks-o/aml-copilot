@@ -17,9 +17,9 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0009](0009-import-boundaries.md) | Import boundaries (import-linter) | Accepted (T02) |
 | [0010](0010-quality-gates-and-ci.md) | Lint, type-check, test and CI | Accepted (T02) |
 | [0011](0011-repo-layout-rationale.md) | Why the repo is laid out this way | Accepted (T04) |
-| [0012](0012-working-rules.md) | Working rules in CLAUDE.md | Accepted (T04) |
+| [0012](0012-working-rules.md) | Working rules in CLAUDE.md | Accepted (T04); decision 2 amended by 0023 |
 | [0013](0013-local-stack.md) | Local stack with Docker Compose | Accepted (T03, recorded in T04); decision 5 superseded by 0021 |
-| [0014](0014-cases-api-contract.md) | Cases API contract (`backend/openapi.yaml`) | Accepted (T05); decision 6 superseded by 0017 |
+| [0014](0014-cases-api-contract.md) | Cases API contract (`backend/openapi.yaml`) | Accepted (T05); decision 6 superseded by 0017, decision 10 by 0023 |
 | [0015](0015-account-id-format.md) | Account id is `<bank>:<account>`, unpadded bank code | Accepted (T05) |
 | [0016](0016-console-graphql-schema.md) | Console GraphQL schema | Accepted (T06); decision 6 refined by 0019 |
 | [0017](0017-decisions-close-cases-atomically.md) | Recording a decision closes or escalates the case, atomically | Accepted (T06) |
@@ -27,3 +27,5 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0019](0019-stub-routes-and-contract-tests.md) | Stub routes from generated models, checked by Schemathesis | Accepted (T08); decision 6 opt-in superseded by 0020 |
 | [0020](0020-test-infrastructure.md) | Test infrastructure: tiers, real containers, Jest | Accepted (T09) |
 | [0021](0021-rabbitmq-definitions-after-boot.md) | RabbitMQ topology is imported after boot, not at boot | Accepted (T09) |
+| [0022](0022-schema-v1.md) | Schema v1 (migration 0001) | Accepted (T10) |
+| [0023](0023-seed-and-download.md) | `aml download` and `aml seed`: loading HI-Small with synthetic KYC | Accepted (T11) |

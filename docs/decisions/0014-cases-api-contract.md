@@ -1,6 +1,6 @@
 # 0014 — Cases API contract (`backend/openapi.yaml`)
 
-**Status:** Accepted; decision 6 superseded by [0017](0017-decisions-close-cases-atomically.md) · **Ticket:** T05 · **Date:** 2026-10-16
+**Status:** Accepted; decision 6 superseded by [0017](0017-decisions-close-cases-atomically.md), decision 10 by [0023](0023-seed-and-download.md) · **Ticket:** T05 · **Date:** 2026-10-16
 
 ## Context
 

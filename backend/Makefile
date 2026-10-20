@@ -1,7 +1,7 @@
 # Backend tasks. Also called by the root Makefile.
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint fmt typecheck test test-integration contract codegen migrate seed replay eval-smoke notebooks
+.PHONY: help install lint fmt typecheck test test-integration contract codegen download migrate seed replay eval-smoke notebooks
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
@@ -44,7 +44,10 @@ codegen: ## Regenerate the client (src/aml/clients/cases_api) and server models 
 migrate: ## Apply database migrations
 	uv run aml migrate
 
-seed: ## Load starter data
+download: ## Fetch the HI-Small files from Kaggle into data/raw (skips files present)
+	uv run aml download
+
+seed: ## Load HI-Small into the database: accounts + KYC, transactions, settings (idempotent)
 	uv run aml seed
 
 replay: ## Replay HI-Small transactions

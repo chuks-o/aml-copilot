@@ -7,8 +7,11 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "alembic>=1.16",
     "attrs>=25.3",
+    "faker==40.40.0",
     "fastapi>=0.118",
     "httpx>=0.28",
+    "kaggle>=2.2",
+    "pandas>=3.0",
     "psycopg[binary]>=3.2",
     "pydantic>=2.11",
     "pydantic-settings>=2.11",
@@ -30,6 +33,7 @@ dev = [
     "import-linter>=2.5",
     "mypy>=1.18",
     "openapi-python-client==0.29.1",
+    "pandas-stubs==3.0.5.260914",
     "pytest>=8.4",
     "pytest-asyncio==1.4.0",
     "pytest-socket==0.8.1",
@@ -89,9 +93,9 @@ explicit_package_bases = true
 module = "aml.clients.cases_api.client"
 disable_error_code = ["arg-type"]
 
-# pika (AMQP client used by integration tests) ships no type information or stubs.
+# pika (integration tests) and kaggle (aml download) ship no type information or stubs.
 [[tool.mypy.overrides]]
-module = ["pika", "pika.*"]
+module = ["pika", "pika.*", "kaggle", "kaggle.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]
@@ -184,12 +188,13 @@ forbidden_modules = [
 
 [[tool.importlinter.contracts]]
 id = "db-belongs-to-api"
-name = "Only aml.api (and the CLI entry points) import aml.db"
+# aml.data is the exception: `aml seed` bulk-loads with COPY, an offline admin job like
+# `aml migrate` that can't go through REST (decision 0023, foreseen by 0012).
+name = "Only aml.api, aml.data (seed) and the CLI entry points import aml.db"
 type = "forbidden"
 source_modules = [
     "aml.clients",
     "aml.common",
-    "aml.data",
     "aml.evals",
     "aml.ingest",
     "aml.investigator",

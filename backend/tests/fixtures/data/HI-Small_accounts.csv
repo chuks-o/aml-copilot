@@ -1,0 +1,16 @@
+Bank Name,Bank ID,Account Number,Entity ID,Entity Name
+Test Bank #10,10,800000000,E00000,Corporation #0
+Test Bank #10,10,800000001,E00001,Individual #1
+Test Bank #10,10,800000002,E00002,Partnership #2
+Test Bank #10,10,800000003,E00003,Sole Proprietorship #3
+Test Bank #10,10,800000004,E00004,Corporation #4
+Test Bank #10,10,800000005,E00005,Individual #5
+Test Bank #10,10,800000006,E00006,Partnership #6
+Test Bank #10,10,800000007,E00007,Sole Proprietorship #7
+Test Bank #10,10,800000008,E00008,Corporation #8
+Test Bank #10,10,800000009,E00009,Individual #9
+Test Bank #20,20,800000000,E00010,Partnership #10
+Test Bank #20,20,800000002,E00011,Sole Proprietorship #11
+Test Bank #20,20,800000005,E00012,Corporation #12
+Test Bank #20,20,800000007,E00013,Individual #13
+Test Bank #70,70,ABC000001,E00014,Partnership #14
