@@ -1,6 +1,6 @@
 # 0025 — Idempotency-Key: one transaction, wait on the row lock, replay exact bytes
 
-**Status:** Accepted · **Ticket:** T13 · **Date:** 2026-10-21
+**Status:** Accepted; decision 9's `triggered_at` and alert ids amended by [0029](0029-labels-and-time-split.md) · **Ticket:** T13 · **Date:** 2026-10-21
 
 ## Context
 

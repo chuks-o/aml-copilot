@@ -1,6 +1,6 @@
 # 0022 — Schema v1 (migration 0001)
 
-**Status:** Accepted · **Ticket:** T10 · **Date:** 2026-10-18
+**Status:** Accepted; decision 4's split values amended by [0029](0029-labels-and-time-split.md) · **Ticket:** T10 · **Date:** 2026-10-18
 
 ## Context
 

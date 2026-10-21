@@ -1,15 +1,16 @@
 # Monitoring rule thresholds (aml.ingest.rules). Rationale and tuning method:
 # docs/decisions/0028-monitoring-rules.md.
 #
-# Set from the DEV period only (2022-09-01 up to 2022-09-06). Never adjust a threshold after
-# looking at the test period (2022-09-06 up to ANALYSIS_END); `make tune-rules` reads dev
-# rows only. Bump `version` whenever a threshold changes: it is part of each alert's
+# Set from the DEV period only (2022-09-01 up to 2022-09-07, the frozen split in
+# data/splits.json, 0029). Never adjust a threshold after looking at the test period
+# (2022-09-07 up to ANALYSIS_END); `make tune-rules` reads dev rows only. Bump `version` whenever a threshold changes: it is part of each alert's
 # model_version, so alerts from different thresholds are never mixed up.
 version: rules-v1
 
 dev_period:
   start: "2022-09-01T00:00:00Z"
-  end: "2022-09-06T00:00:00Z"  # exclusive; the test period starts here
+  end: "2022-09-07T00:00:00Z"  # exclusive; the test period starts here. Must equal the
+  # frozen split's dev_end (aml.evals.labels; tests/unit/test_labels.py checks it).
 
 # Segmentation: the bank-70 hubs (accounts.is_high_volume, 6,468+ transactions each) are
 # monitored by a separate process, not by these thresholds.

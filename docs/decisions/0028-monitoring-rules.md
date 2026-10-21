@@ -1,6 +1,6 @@
 # 0028 — Monitoring rules that raise alerts
 
-**Status:** Accepted · **Ticket:** T15 · **Date:** 2026-10-21 · **Amends:** [0018](0018-generated-clients.md) decision 8 (the `httpx` contract)
+**Status:** Accepted; decision 8's dev period amended by [0029](0029-labels-and-time-split.md) · **Ticket:** T15 · **Date:** 2026-10-21 · **Amends:** [0018](0018-generated-clients.md) decision 8 (the `httpx` contract)
 
 ## Context
 

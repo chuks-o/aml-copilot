@@ -23,6 +23,8 @@ Working rules for this repo. They apply to every change, human or agent. The rea
 - Only `aml.api` owns the database: migrations live in `backend/migrations`, and only `aml.api`, the `aml` CLI and the two bulk `COPY` loaders (`aml.data` for `aml seed`, `aml.ingest` for `aml replay`; decisions 0023, 0026) may import `aml.db`. import-linter enforces this too.
 - All outbound network calls go through the retry helper in `aml.common` (added later). Don't write ad-hoc retry loops in the meantime.
 - No secrets in code. Configuration and credentials come from the environment (`.env`, documented in `.env.example`).
+- No model or prompt input may encode the date or the day's position in the period. Register every feature or prompt builder in `aml.evals.leakage.INPUTS`; `tests/unit/test_leakage.py` checks them (decision 0029).
+- Labels and splits are frozen in `backend/data/splits.json`. Change them only by rerunning `aml label` and committing the new file with a decision record; `make -C backend check-splits` fails otherwise.
 - Tests never call real LLM APIs or the internet. Fake or stub them (`FakeLLM` in `backend/tests/fixtures`). pytest-socket blocks anything but localhost.
 - Backend tests live in `tests/unit/`, `tests/integration/` or `tests/contract/`; the directory sets the marker. Integration tests use the container fixtures in `tests/fixtures/`, never the `make up` stack.
 - Conventional commits, one logical change per commit: `type(scope): summary`, where `scope` is the area (`web`, `backend`, `infra`, `docs`, `ci`), with the ticket as a trailer, e.g. `Refs: T04`.

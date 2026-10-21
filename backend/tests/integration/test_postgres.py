@@ -4,7 +4,7 @@ from sqlalchemy import Connection, text
 
 
 def test_migrations_ran(db: Connection) -> None:
-    assert db.scalar(text("select version_num from alembic_version")) == "0002"
+    assert db.scalar(text("select version_num from alembic_version")) == "0003"
 
 
 def test_insert_and_read_a_row(db: Connection) -> None:

@@ -1,7 +1,7 @@
 # Backend tasks. Also called by the root Makefile.
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint fmt typecheck test test-integration contract bench-pagination tune-rules sweep-idempotency-keys codegen download migrate seed replay eval-smoke notebooks
+.PHONY: help install lint fmt typecheck test test-integration contract bench-pagination tune-rules label check-splits sweep-idempotency-keys codegen download migrate seed replay eval-smoke notebooks
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
@@ -29,6 +29,12 @@ test-integration: ## Integration tests against real Postgres and RabbitMQ contai
 
 sweep-idempotency-keys: ## Delete Idempotency-Keys older than 24 hours (no scheduler yet)
 	uv run aml sweep-idempotency-keys
+
+label: ## Label alerts and freeze the dev/test split into data/splits.json (needs alerts)
+	uv run aml label
+
+check-splits: ## Fail if alert labels or splits no longer match data/splits.json
+	uv run aml label --check
 
 tune-rules: ## Alert volume per threshold on the DEV period (needs `make up` + `make seed`)
 	uv run python scripts/tune_rules.py

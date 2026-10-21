@@ -6,6 +6,7 @@ Alembic is configured in code (`aml.db.alembic_config`), so there is no `alembic
 
 | Revision | What |
 | --- | --- |
+| `0003` | `alerts.created_at` (wall clock), `alerts.heldout_cycle`; `split` is `dev`/`test`; `typology_label` may be `UNLISTED`. See [decision 0029](../../docs/decisions/0029-labels-and-time-split.md). |
 | `0002` | `alerts.typology`: the scoring model's guess, kept apart from the ground-truth `typology_label`. See [decision 0025](../../docs/decisions/0025-idempotency.md). |
 | `0001` | Schema v1: accounts, settings, monthly-partitioned transactions, ingest quarantine, alerts, cases, case events, analyst decisions, agent runs and steps, outbox, idempotency keys, typology docs. See [decision 0022](../../docs/decisions/0022-schema-v1.md). |
 

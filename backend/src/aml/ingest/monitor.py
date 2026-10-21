@@ -161,14 +161,7 @@ class Monitor:
         async with self._client() as client:
 
             async def send(account: str, hit: rules.Hit) -> None:
-                body = AlertFields(
-                    account_id=account,
-                    score=hit.score,
-                    reason=hit.reason,
-                    transaction_ids=list(hit.cited),
-                    model_version=f"{self._config.version}:{hit.rule_id}",
-                    typology=ApiTypology(hit.typology) if hit.typology else None,
-                )
+                body = alert_body(account, hit, self._config.version)
                 key = idempotency_key(hit, account)
                 async with limit:
                     response = await create_alert.asyncio_detailed(
@@ -181,6 +174,19 @@ class Monitor:
                     result.errors.append(f"{key}: {response.status_code} {response.content!r}")
 
             await asyncio.gather(*(send(account, hit) for account, hit in found))
+
+
+def alert_body(account: str, hit: rules.Hit, version: str) -> AlertFields:
+    """What POST /alerts receives for a hit: later a prompt input for the investigator, so
+    registered in aml.evals.leakage and checked for time leaks."""
+    return AlertFields(
+        account_id=account,
+        score=hit.score,
+        reason=hit.reason,
+        transaction_ids=list(hit.cited),
+        model_version=f"{version}:{hit.rule_id}",
+        typology=ApiTypology(hit.typology) if hit.typology else None,
+    )
 
 
 def idempotency_key(hit: rules.Hit, account: str) -> str:
