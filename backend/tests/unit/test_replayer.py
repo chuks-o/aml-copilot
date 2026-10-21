@@ -1,17 +1,27 @@
+import shutil
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from aml.data import dataset
 from aml.ingest import replayer
 
 DATA = Path(__file__).resolve().parents[1] / "fixtures" / "data"
 
 
 @pytest.fixture
-def rows() -> pd.DataFrame:
-    return replayer.load_ordered(DATA)
+def raw_dir(tmp_path: Path) -> Path:
+    """The fixture files in a temp dir: the replayer writes its sort cache next to them."""
+    for name in (dataset.TRANSACTIONS_FILE, dataset.PATTERNS_FILE):
+        shutil.copy(DATA / name, tmp_path / name)
+    return tmp_path
+
+
+@pytest.fixture
+def rows(raw_dir: Path) -> pd.DataFrame:
+    return replayer.load_ordered(raw_dir)
 
 
 def test_rows_come_in_timestamp_then_id_order(rows: pd.DataFrame) -> None:
@@ -54,21 +64,22 @@ def test_unthrottled_means_everything_is_due_at_once() -> None:
     assert replayer.due_times(ts, replayer.ReplayConfig(rate=0)).tolist() == [0.0, 0.0, 0.0]
 
 
-def test_corruption_is_chosen_by_file_position(rows: pd.DataFrame) -> None:
+def test_corruption_depends_only_on_seed_and_row_id(rows: pd.DataFrame) -> None:
     whole = rows.copy()
     first_half = rows.iloc[: len(rows) // 2].copy()
 
-    picked_whole = replayer.corrupt(whole, rate=0.2, seed=7, total=len(rows))
-    picked_half = replayer.corrupt(first_half, rate=0.2, seed=7, total=len(rows))
+    picked_whole = replayer.corrupt(whole, rate=0.2, seed=7)
+    picked_half = replayer.corrupt(first_half, rate=0.2, seed=7)
 
     assert picked_whole
     assert set(picked_half) == set(picked_whole) & set(first_half["id"])
-    assert replayer.corrupt(rows.copy(), rate=0.2, seed=7, total=len(rows)) == picked_whole
+    assert replayer.corrupt(rows.copy(), rate=0.2, seed=7) == picked_whole
+    assert replayer.corrupt(rows.copy(), rate=0.2, seed=8) != picked_whole
 
 
 def test_each_corruption_kind_is_quarantined_with_its_reason(rows: pd.DataFrame) -> None:
     damaged = rows.copy()
-    picked = replayer.corrupt(damaged, rate=0.5, seed=1, total=len(rows))
+    picked = replayer.corrupt(damaged, rate=0.5, seed=1)
 
     valid, rejected = replayer.validate(damaged)
 
@@ -89,3 +100,34 @@ def test_valid_rows_are_normalised_for_copy(rows: pd.DataFrame) -> None:
     assert first["from_account"] == "70:ABC000001"  # bank "070" normalised (0015)
     assert first["currency_paid"] == "USD"
     assert first["payment_format"] == "ACH"
+
+
+def test_the_sorted_copy_is_built_once_and_rebuilt_when_the_source_changes(raw_dir: Path) -> None:
+    first = replayer.sorted_copy(raw_dir, echo=lambda _: None)
+    built = first.stat().st_mtime_ns
+    assert replayer.sorted_copy(raw_dir, echo=lambda _: None).stat().st_mtime_ns == built
+
+    source = raw_dir / dataset.TRANSACTIONS_FILE
+    source.write_text(source.read_text() + source.read_text().splitlines()[1] + "\n")
+    rebuilt = replayer.sorted_copy(raw_dir, echo=lambda _: None)
+
+    assert rebuilt.stat().st_mtime_ns != built
+    assert sum(1 for _ in rebuilt.open()) == sum(1 for _ in source.open())
+    assert sorted(p.name for p in rebuilt.parent.iterdir()) == [
+        "transactions_sorted.csv",
+        "transactions_sorted.json",
+    ]  # no leftover runs
+
+
+def test_streaming_in_small_chunks_matches_one_in_memory_sort(
+    raw_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    raw = dataset.read_transactions(raw_dir / dataset.TRANSACTIONS_FILE)
+    raw["id"] = np.arange(1, len(raw) + 1)
+    expected = raw.sort_values(["ts_raw", "id"], kind="stable")["id"].tolist()
+    monkeypatch.setattr(replayer, "RUN_ROWS", 7)  # many tiny sorted runs to merge
+
+    chunks = list(replayer.stream_ordered(raw_dir, echo=lambda _: None, rows=10))
+
+    assert [i for chunk in chunks for i in chunk["id"]] == expected
+    assert max(len(c) for c in chunks) == 10

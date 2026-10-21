@@ -6,6 +6,7 @@ Rationale: docs/decisions/0023-seed-and-download.md (and 0002, 0003, 0015 for th
 
 import csv
 import hashlib
+from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from itertools import pairwise
@@ -140,6 +141,21 @@ def read_transactions(path: Path) -> pd.DataFrame:
     with path.open(newline="") as f:
         names = _transaction_names(next(csv.reader(f)))
     return pd.read_csv(path, header=0, names=names, dtype=str, keep_default_na=False)
+
+
+def transaction_columns(path: Path) -> list[str]:
+    """Our column names for the file's header, checked (see ``_transaction_names``)."""
+    with path.open(newline="") as f:
+        return _transaction_names(next(csv.reader(f)))
+
+
+def read_transactions_chunks(path: Path, rows: int) -> Iterator[pd.DataFrame]:
+    """The raw CSV in pieces of ``rows`` rows, as text (like ``read_transactions``), for callers
+    that must not hold the whole 475 MB file in memory."""
+    names = transaction_columns(path)
+    yield from pd.read_csv(
+        path, header=0, names=names, dtype=str, keep_default_na=False, chunksize=rows
+    )
 
 
 def read_patterns(path: Path) -> pd.DataFrame:

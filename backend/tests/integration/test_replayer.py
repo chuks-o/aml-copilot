@@ -97,7 +97,7 @@ def test_replay_commits_valid_rows_and_quarantines_corrupted_ones(
             text("select value from settings where key = 'REPLAY_POSITION'")
         )
     assert set(reasons) == {"unknown currency", "negative amount", "unparsable timestamp"}
-    assert max(reasons.values()) - min(reasons.values()) <= 1  # round-robin
+    assert min(reasons.values()) > len(corrupted) / 5  # each kind about a third
     assert unlisted and unlisted > 0
     assert position == report.position
     assert any(line.startswith("progress:") and "rows/s" in line for line in progress)

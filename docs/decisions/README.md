@@ -31,4 +31,5 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0023](0023-seed-and-download.md) | `aml download` and `aml seed`: loading HI-Small with synthetic KYC | Accepted (T11) |
 | [0024](0024-account-pagination.md) | Real account transactions and counterparties: keyset pagination over both sides | Accepted (T12) |
 | [0025](0025-idempotency.md) | Idempotency-Key: one transaction, wait on the row lock, replay exact bytes | Accepted (T13) |
-| [0026](0026-replayer.md) | Transaction replayer: paced, batched, quarantined, resumable | Accepted (T14) |
+| [0026](0026-replayer.md) | Transaction replayer: paced, batched, quarantined, resumable | Accepted (T14); decisions 3, 8 superseded by 0027 |
+| [0027](0027-streaming-replay.md) | Replay streams a sorted copy instead of loading the file | Accepted (T14 follow-up) |
