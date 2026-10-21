@@ -38,7 +38,8 @@ def test_common_is_barred_from_every_other_module() -> None:
 
 def test_only_api_data_and_entry_points_may_import_db() -> None:
     contract = _contract("db-belongs-to-api")
-    allowed = {"aml.api", "aml.cli", "aml.__main__", "aml.db", "aml.data"}  # data: 0023
+    # The bulk COPY loaders are the exceptions: aml.data (0023), aml.ingest (0026).
+    allowed = {"aml.api", "aml.cli", "aml.__main__", "aml.db", "aml.data", "aml.ingest"}
 
     assert set(contract["source_modules"]) == _top_level_modules() - allowed
 

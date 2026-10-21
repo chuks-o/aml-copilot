@@ -221,8 +221,14 @@ def _drop_deferred(cursor: psycopg.Cursor[Any]) -> None:
 
 
 def seed(
-    raw_dir: Path, *, echo: Callable[[str], None] = print, batch_size: int = BATCH_SIZE
+    raw_dir: Path,
+    *,
+    echo: Callable[[str], None] = print,
+    batch_size: int = BATCH_SIZE,
+    accounts_only: bool = False,
 ) -> SeedReport:
+    """Load the dataset. ``accounts_only`` loads accounts and settings but leaves
+    ``transactions`` empty, for ``aml replay`` to fill gradually (0026)."""
     seconds: dict[str, float] = {}
     mark = time.monotonic()
 
@@ -264,6 +270,8 @@ def seed(
         },
     }
     out = transactions.assign(ts=transactions["ts"].astype(str))  # "2022-09-01 00:20:00+00:00"
+    if accounts_only:
+        out = out.iloc[0:0]
     lap("prepare")
 
     with db.connect() as connection, connection.cursor() as cursor:
@@ -298,6 +306,8 @@ def seed(
             cursor.execute(statement)
         lap("foreign keys")
         cursor.execute("SELECT setval('transactions_id_seq', (SELECT max(id) FROM transactions))")
+        # transactions was just emptied or replaced: any replay position is meaningless now.
+        cursor.execute("DELETE FROM settings WHERE key = 'REPLAY_POSITION'")
         for key, value in settings.items():
             cursor.execute(
                 "INSERT INTO settings (key, value) VALUES (%s, %s) "

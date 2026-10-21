@@ -1,6 +1,6 @@
 # 0012 — Working rules in CLAUDE.md
 
-**Status:** Accepted; decision 2 amended by [0023](0023-seed-and-download.md) (`aml.data` may import `aml.db`) · **Ticket:** T04 · **Date:** 2026-10-16
+**Status:** Accepted; decision 2 amended by [0023](0023-seed-and-download.md) and [0026](0026-replayer.md) (`aml.data` and `aml.ingest` may import `aml.db`) · **Ticket:** T04 · **Date:** 2026-10-16
 
 ## Context
 

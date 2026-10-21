@@ -77,9 +77,10 @@ exclude = ["src/aml/clients/cases_api/**", "src/aml/api/schemas.py"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
-# Repositories assemble SQL from constant fragments defined in the same module; every value
-# is a bound parameter. S608 can't tell the two apart (0024).
+# Repositories and the replayer assemble SQL from constant fragments defined in the same
+# module; every value is a bound parameter. S608 can't tell the two apart (0024, 0026).
 "src/aml/api/repositories/**" = ["S608"]
+"src/aml/ingest/**" = ["S608"]
 
 [tool.mypy]
 strict = true
@@ -191,15 +192,14 @@ forbidden_modules = [
 
 [[tool.importlinter.contracts]]
 id = "db-belongs-to-api"
-# aml.data is the exception: `aml seed` bulk-loads with COPY, an offline admin job like
-# `aml migrate` that can't go through REST (decision 0023, foreseen by 0012).
-name = "Only aml.api, aml.data (seed) and the CLI entry points import aml.db"
+# Exceptions, both bulk COPY loaders that can't go through REST: aml.data (`aml seed`, 0023)
+# and aml.ingest (`aml replay`, 0026). Foreseen by 0012.
+name = "Only aml.api, the bulk loaders (aml.data, aml.ingest) and the CLI import aml.db"
 type = "forbidden"
 source_modules = [
     "aml.clients",
     "aml.common",
     "aml.evals",
-    "aml.ingest",
     "aml.investigator",
     "aml.scoring",
     "aml.worker",

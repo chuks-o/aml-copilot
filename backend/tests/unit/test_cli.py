@@ -21,9 +21,9 @@ def test_lists_all_commands() -> None:
         assert command in result.output
 
 
-# Never add seed or download here: invoking them for real would read data/raw and write to
+# Never add seed, download or replay here: invoking them for real would read data/raw and write to
 # the configured database or call Kaggle. Their tests below replace the work functions.
-@pytest.mark.parametrize("command", ["replay", "train", "eval"])
+@pytest.mark.parametrize("command", ["train", "eval"])
 def test_stub_commands_say_not_implemented(command: str) -> None:
     result = runner.invoke(app, [command])
 
@@ -74,7 +74,7 @@ def test_seed_runs_against_the_configured_raw_dir_and_prints_the_report(
 ) -> None:
     calls: list[Path] = []
 
-    def fake_seed(raw_dir: Path, *, echo: Callable[[str], None]) -> SeedReport:
+    def fake_seed(raw_dir: Path, *, echo: Callable[[str], None], accounts_only: bool) -> SeedReport:
         calls.append(raw_dir)
         return SeedReport(
             tables={"accounts": 2, "transactions": 3},

@@ -24,3 +24,15 @@ Or download the three files in a browser and place them in `backend/data/raw/`.
 ## Loading the database
 
 With the stack up (`make up`), run `make seed`. It loads accounts (with KYC profiles), transactions and `settings` in a single transaction. It's idempotent: run it again and the data, and the fingerprints it prints, are identical. It needs about twice the dataset's size in free disk while it runs, because the old rows are kept until the new load commits. How it works, and why: [decision 0023](../../docs/decisions/0023-seed-and-download.md).
+
+## Replaying instead of seeding
+
+`aml replay` loads the same transactions gradually, as if they were arriving live:
+
+```bash
+uv run aml seed --accounts-only     # accounts and settings; transactions left empty
+uv run aml replay                   # 2,000 rows/s in (ts, id) order
+uv run aml replay --compression 600 --corrupt-rate 0.01   # 10 dataset minutes per second
+```
+
+Malformed rows go to `ingest_quarantine` with the reason. Progress is printed every 10 s. A stopped replay resumes where it left off (`--from-start` starts over). Both `aml seed` and `aml replay` load the whole 475 MB file into memory (about 2.3 GB), so close memory-hungry apps first on a small machine: swap uses the same disk. How it works, and why: [decision 0026](../../docs/decisions/0026-replayer.md).

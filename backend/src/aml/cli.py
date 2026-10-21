@@ -44,9 +44,41 @@ def worker() -> None:
 
 
 @app.command()
-def replay() -> None:
-    """Replay historical transactions as if live."""
-    _not_implemented("replay")
+def replay(
+    rate: Annotated[float, typer.Option(help="Max rows per second; 0 = no cap")] = 2_000.0,
+    compression: Annotated[
+        float, typer.Option(help="Dataset seconds per wall second; 0 = off (rate alone paces)")
+    ] = 0.0,
+    corrupt_rate: Annotated[
+        float, typer.Option(help="Share of rows to damage on purpose, to test quarantine")
+    ] = 0.0,
+    seed: Annotated[int, typer.Option(help="Random seed for --corrupt-rate")] = 42,
+    limit: Annotated[int | None, typer.Option(help="Replay at most this many rows")] = None,
+    batch_size: Annotated[int, typer.Option(help="Rows per COPY batch")] = 5_000,
+    from_start: Annotated[
+        bool, typer.Option(help="Ignore the stored position and start from the beginning")
+    ] = False,
+) -> None:
+    """Replay HI-Small in timestamp order, as if live (after `aml seed --accounts-only`)."""
+    from aml.ingest.replayer import ReplayConfig
+    from aml.ingest.replayer import replay as run
+
+    settings = get_settings()
+    configure_logging("aml-replay", settings.log_level)
+    config = ReplayConfig(
+        rate=rate,
+        compression=compression,
+        corrupt_rate=corrupt_rate,
+        seed=seed,
+        limit=limit,
+        batch_size=batch_size,
+        from_start=from_start,
+    )
+    report = run(settings.raw_data_dir, config, echo=typer.echo)
+    typer.echo(
+        f"replayed {report.committed:,} committed, {report.quarantined:,} quarantined, "
+        f"{report.duplicates:,} duplicates in {report.batches:,} batches, {report.seconds} s"
+    )
 
 
 @app.command()
@@ -72,13 +104,17 @@ def download() -> None:
 
 
 @app.command()
-def seed() -> None:
+def seed(
+    accounts_only: Annotated[
+        bool, typer.Option(help="Load accounts and settings only; leave transactions to replay")
+    ] = False,
+) -> None:
     """Load HI-Small into the database: accounts with KYC profiles, transactions, settings."""
     from aml.data.seed import seed as run
 
     settings = get_settings()
     configure_logging("aml-seed", settings.log_level)
-    report = run(settings.raw_data_dir, echo=typer.echo)
+    report = run(settings.raw_data_dir, echo=typer.echo, accounts_only=accounts_only)
     echo = typer.echo
     echo("\nrows per table:")
     for table, count in report.tables.items():

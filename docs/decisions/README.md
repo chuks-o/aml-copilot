@@ -17,7 +17,7 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0009](0009-import-boundaries.md) | Import boundaries (import-linter) | Accepted (T02) |
 | [0010](0010-quality-gates-and-ci.md) | Lint, type-check, test and CI | Accepted (T02) |
 | [0011](0011-repo-layout-rationale.md) | Why the repo is laid out this way | Accepted (T04) |
-| [0012](0012-working-rules.md) | Working rules in CLAUDE.md | Accepted (T04); decision 2 amended by 0023 |
+| [0012](0012-working-rules.md) | Working rules in CLAUDE.md | Accepted (T04); decision 2 amended by 0023, 0026 |
 | [0013](0013-local-stack.md) | Local stack with Docker Compose | Accepted (T03, recorded in T04); decision 5 superseded by 0021 |
 | [0014](0014-cases-api-contract.md) | Cases API contract (`backend/openapi.yaml`) | Accepted (T05); decision 6 superseded by 0017, decision 10 by 0023 |
 | [0015](0015-account-id-format.md) | Account id is `<bank>:<account>`, unpadded bank code | Accepted (T05) |
@@ -31,3 +31,4 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0023](0023-seed-and-download.md) | `aml download` and `aml seed`: loading HI-Small with synthetic KYC | Accepted (T11) |
 | [0024](0024-account-pagination.md) | Real account transactions and counterparties: keyset pagination over both sides | Accepted (T12) |
 | [0025](0025-idempotency.md) | Idempotency-Key: one transaction, wait on the row lock, replay exact bytes | Accepted (T13) |
+| [0026](0026-replayer.md) | Transaction replayer: paced, batched, quarantined, resumable | Accepted (T14) |
