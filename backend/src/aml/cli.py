@@ -1,5 +1,6 @@
 """The ``aml`` command-line entrypoint."""
 
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -58,10 +59,17 @@ def replay(
     from_start: Annotated[
         bool, typer.Option(help="Ignore the stored position and start from the beginning")
     ] = False,
+    rules: Annotated[
+        bool, typer.Option(help="Run the monitoring rules per batch and POST alerts to the API")
+    ] = True,
+    rules_config: Annotated[
+        Path | None, typer.Option(help="Rules YAML [default: the packaged rules.yaml]")
+    ] = None,
 ) -> None:
     """Replay HI-Small in timestamp order, as if live (after `aml seed --accounts-only`)."""
     from aml.ingest.replayer import ReplayConfig
     from aml.ingest.replayer import replay as run
+    from aml.ingest.rules import load_config
 
     settings = get_settings()
     configure_logging("aml-replay", settings.log_level)
@@ -73,12 +81,21 @@ def replay(
         limit=limit,
         batch_size=batch_size,
         from_start=from_start,
+        rules=load_config(rules_config) if rules else None,
     )
     report = run(settings.raw_data_dir, config, echo=typer.echo)
     typer.echo(
         f"replayed {report.committed:,} committed, {report.quarantined:,} quarantined, "
         f"{report.duplicates:,} duplicates in {report.batches:,} batches, {report.seconds} s"
     )
+    if config.rules is not None:
+        typer.echo(
+            f"alerts: {report.alerts:,} (rule-to-alert lag p95 {report.alert_lag_p95_ms()} ms)"
+        )
+        for rule_id, count in sorted(report.alerts_by_rule.items()):
+            typer.echo(f"  {rule_id:<24} {count:>8,}")
+        for error in report.alert_errors[:10]:
+            typer.echo(f"  alert error: {error}")
 
 
 @app.command()

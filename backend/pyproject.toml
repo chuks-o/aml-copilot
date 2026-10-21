@@ -16,6 +16,7 @@ dependencies = [
     "pydantic>=2.11",
     "pydantic-settings>=2.11",
     "python-dateutil>=2.9",
+    "pyyaml>=6.0",
     "sqlalchemy>=2.0",
     "structlog>=25.4",
     "typer>=0.19",
@@ -37,7 +38,6 @@ dev = [
     "pytest>=8.4",
     "pytest-asyncio==1.4.0",
     "pytest-socket==0.8.1",
-    "pyyaml>=6.0",
     "ruff>=0.13",
     "schemathesis==4.29.0",
     "testcontainers[postgres,rabbitmq]==4.15.0",
@@ -224,3 +224,6 @@ source_modules = [
     "aml.worker",
 ]
 forbidden_modules = ["httpx"]
+# Direct imports only: the point is that HTTP goes *through* aml.clients, so
+# `aml.ingest -> aml.clients -> httpx` is the intended path, not a violation (0028).
+allow_indirect_imports = true

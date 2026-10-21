@@ -18,7 +18,7 @@ from tests.fixtures.postgres import MIGRATIONS
 
 ROWS = 20_000
 ACCOUNTS = [(f"{bank:03d}", f"8{n:08X}") for bank in (10, 20, 70) for n in range(60)]
-UNLIMITED = ReplayConfig(rate=0, corrupt_rate=0.01, seed=42, report_every=0)
+UNLIMITED = ReplayConfig(rate=0, rules=None, corrupt_rate=0.01, seed=42, report_every=0)
 
 
 def _write_dataset(directory: Path, rows: int, unknown_account_rows: int = 0) -> None:
@@ -107,7 +107,7 @@ def test_replay_commits_valid_rows_and_quarantines_corrupted_ones(
 def test_rows_are_committed_in_timestamp_order(stream: Path, scratch_database: Engine) -> None:
     _write_dataset(stream, 3_000)
 
-    replay(stream, ReplayConfig(rate=0, batch_size=500), echo=lambda _: None)
+    replay(stream, ReplayConfig(rate=0, rules=None, batch_size=500), echo=lambda _: None)
 
     with scratch_database.connect() as connection:
         # xmin is the inserting transaction: one per batch, in commit order.
@@ -127,10 +127,12 @@ def test_a_stopped_replay_resumes_after_its_position_and_adds_nothing_twice(
 ) -> None:
     _write_dataset(stream, 5_000)
 
-    first = replay(stream, ReplayConfig(rate=0, limit=2_000), echo=lambda _: None)
-    rest = replay(stream, ReplayConfig(rate=0), echo=lambda _: None)
-    again = replay(stream, ReplayConfig(rate=0), echo=lambda _: None)
-    from_start = replay(stream, ReplayConfig(rate=0, from_start=True), echo=lambda _: None)
+    first = replay(stream, ReplayConfig(rate=0, rules=None, limit=2_000), echo=lambda _: None)
+    rest = replay(stream, ReplayConfig(rate=0, rules=None), echo=lambda _: None)
+    again = replay(stream, ReplayConfig(rate=0, rules=None), echo=lambda _: None)
+    from_start = replay(
+        stream, ReplayConfig(rate=0, rules=None, from_start=True), echo=lambda _: None
+    )
 
     assert (first.committed, rest.committed, again.committed) == (2_000, 3_000, 0)
     assert _ids(scratch_database, "select id from transactions") == set(range(1, 5_001))
@@ -142,7 +144,7 @@ def test_rows_with_unknown_accounts_are_quarantined_not_fatal(
 ) -> None:
     _write_dataset(stream, 1_000, unknown_account_rows=3)
 
-    report = replay(stream, ReplayConfig(rate=0), echo=lambda _: None)
+    report = replay(stream, ReplayConfig(rate=0, rules=None), echo=lambda _: None)
 
     assert (report.committed, report.quarantined) == (997, 3)
     with scratch_database.connect() as connection:

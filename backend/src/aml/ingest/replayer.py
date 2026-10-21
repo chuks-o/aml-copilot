@@ -35,6 +35,8 @@ import psycopg
 from aml import db
 from aml.common import get_logger
 from aml.data import dataset
+from aml.ingest.monitor import Monitor
+from aml.ingest.rules import MonitorConfig
 
 log = get_logger(__name__)
 
@@ -70,6 +72,7 @@ class ReplayConfig:
     flush_after: float = 1.0  # seconds a due row may wait for its batch to fill
     report_every: float = 10.0
     from_start: bool = False  # ignore the stored watermark
+    rules: MonitorConfig | None = None  # monitoring rules to run per batch (None: off, 0028)
 
 
 @dataclass
@@ -81,6 +84,16 @@ class ReplayReport:
     seconds: float = 0.0
     corrupted_ids: list[int] = field(default_factory=list)
     position: dict[str, Any] | None = None
+    alerts_by_rule: dict[str, int] = field(default_factory=dict)
+    alert_lags_ms: list[float] = field(default_factory=list)
+    alert_errors: list[str] = field(default_factory=list)
+
+    @property
+    def alerts(self) -> int:
+        return sum(self.alerts_by_rule.values())
+
+    def alert_lag_p95_ms(self) -> float | None:
+        return round(_p95(self.alert_lags_ms), 1) if self.alert_lags_ms else None
 
 
 # ------------------------------------------------------------------------- loading
@@ -434,6 +447,7 @@ def replay(
     config = config or ReplayConfig()
     with db.connect() as connection:
         writer = BatchWriter(connection)
+        monitor = Monitor(connection, config.rules) if config.rules is not None else None
         resume = None if config.from_start else writer.position()
         if resume is not None:
             echo(f"resuming after {resume['ts']} id {resume['id']}")
@@ -456,6 +470,8 @@ def replay(
                 "batch_ms_p50": round(statistics.median(latencies), 1),
                 "batch_ms_p95": round(_p95(latencies), 1),
                 "position": report.position,
+                "alerts": report.alerts,
+                "alert_lag_ms_p95": report.alert_lag_p95_ms(),
             }
             log.info("replay_finished" if final else "replay_progress", **fields)
             echo(
@@ -463,6 +479,11 @@ def replay(
                 f"{report.committed:,} committed, {report.quarantined:,} quarantined, "
                 f"{report.duplicates:,} duplicates, batch p50 {fields['batch_ms_p50']} ms "
                 f"p95 {fields['batch_ms_p95']} ms"
+                + (
+                    f", {report.alerts:,} alerts (lag p95 {report.alert_lag_p95_ms()} ms)"
+                    if monitor is not None
+                    else ""
+                )
             )
             window.start, window.rows, window.latencies = now, 0, []
 
@@ -477,7 +498,16 @@ def replay(
                 batch = pending.take(end)
                 batch_start = clock()
                 committed, quarantined, duplicates = writer.write(batch)
-                window.latencies.append((clock() - batch_start) * 1000)
+                committed_at = clock()
+                window.latencies.append((committed_at - batch_start) * 1000)
+                if monitor is not None:
+                    result = monitor.evaluate(batch["id"].tolist(), committed_at)
+                    for rule_id, count in result.alerts_by_rule.items():
+                        report.alerts_by_rule[rule_id] = (
+                            report.alerts_by_rule.get(rule_id, 0) + count
+                        )
+                    report.alert_lags_ms += result.lags_ms
+                    report.alert_errors += result.errors
                 window.rows += len(batch)
                 report.committed += committed
                 report.quarantined += quarantined
