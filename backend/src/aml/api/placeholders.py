@@ -17,20 +17,13 @@ from aml.api.schemas import (
     AlertStatus,
     Case,
     CaseStatus,
-    CounterpartyEdge,
-    Direction,
-    EdgeDirection,
     EntityType,
-    Money,
     Outcome,
-    PaymentFormat,
     Recommendation,
-    Transaction,
     Typology,
 )
 
 ACCOUNT_ID = "10:8000EBD30"
-COUNTERPARTY_ID = "37861:80B779D80"
 CREATED_AT = datetime(2022, 9, 1, 0, 20, tzinfo=UTC)
 UPDATED_AT = datetime(2022, 9, 1, 6, 0, tzinfo=UTC)
 ALERT_ID = UUID("6f0b7c4e-2a1d-4b8e-9c3f-5d7a1e2b4c6d")
@@ -74,31 +67,6 @@ def account(account_id: str) -> Account:
         activity=ActivitySummary(
             first_seen=CREATED_AT, last_seen=UPDATED_AT, sent_count=1, received_count=0
         ),
-    )
-
-
-def transaction(account_id: str) -> Transaction:
-    usd = Money(amount="3697.34", currency="USD")
-    return Transaction(
-        id=TRANSACTION_ID,
-        ts=CREATED_AT,
-        from_account_id=account_id,
-        to_account_id=COUNTERPARTY_ID,
-        direction=Direction.OUT,
-        amount_paid=usd,
-        amount_received=usd,
-        payment_format=PaymentFormat.WIRE,
-    )
-
-
-def counterparty_edge() -> CounterpartyEdge:
-    return CounterpartyEdge(
-        counterparty_id=COUNTERPARTY_ID,
-        direction=EdgeDirection.OUT,
-        transaction_count=1,
-        total=Money(amount="3697.34", currency="USD"),
-        first_ts=CREATED_AT,
-        last_ts=CREATED_AT,
     )
 
 
