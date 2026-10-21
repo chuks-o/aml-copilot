@@ -1,11 +1,14 @@
-"""Alerts: /alerts, /alerts/{alert_id}."""
+"""Alerts: /alerts (list still a placeholder), POST /alerts and /alerts/{alert_id} (database)."""
 
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Header, Query, Response
+from fastapi import APIRouter, Header, Query, Request
+from fastapi.responses import Response
 
 from aml.api import placeholders
+from aml.api.idempotency import StoredResponse
+from aml.api.problems import ProblemError
 from aml.api.schemas import (
     Alert,
     AlertCreate,
@@ -15,6 +18,7 @@ from aml.api.schemas import (
     IdempotencyKeyValue,
     PageLimit,
 )
+from aml.api.unit_of_work import Work, idempotent
 
 router = APIRouter(tags=["alerts"])
 
@@ -29,17 +33,23 @@ def list_alerts(
     return AlertPage(items=items[:limit], next_cursor=None, total_estimate=len(items))
 
 
-@router.post("/alerts", operation_id="createAlert", status_code=201)
+@router.post("/alerts", operation_id="createAlert", status_code=201, response_model=Alert)
 def create_alert(
     body: AlertCreate,
-    response: Response,
+    request: Request,
+    work: Work,
     idempotency_key: Annotated[IdempotencyKeyValue, Header(alias="Idempotency-Key")],
-) -> Alert:
-    alert = placeholders.alert(placeholders.id_for(idempotency_key, "alert"), create=body)
-    response.headers["Location"] = f"/alerts/{alert.id}"
-    return alert
+) -> Response:
+    def write() -> StoredResponse:
+        alert = work.alerts.create(body, idempotency_key)
+        return StoredResponse.of(201, alert, {"Location": f"/alerts/{alert.id}"})
+
+    return idempotent(work, idempotency_key, request, body, write)
 
 
 @router.get("/alerts/{alert_id}", operation_id="getAlert")
-def get_alert(alert_id: UUID) -> Alert:
-    return placeholders.alert(alert_id)
+def get_alert(alert_id: UUID, work: Work) -> Alert:
+    alert = work.alerts.get(alert_id)
+    if alert is None:
+        raise ProblemError(404, f"Alert {alert_id} does not exist.")
+    return alert

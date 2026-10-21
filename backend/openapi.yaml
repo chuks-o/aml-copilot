@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: aml-copilot Cases API
-  version: 0.3.0
+  version: 0.3.1
   summary: Alerts, accounts, transactions and investigation cases.
   description: |
     The REST API served by `aml.api`. **This file is the source of truth.** The server is
@@ -23,10 +23,14 @@ info:
       same filters they were issued for.
     - **Idempotency.** Every `POST` requires an `Idempotency-Key` header
       ([IETF draft](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/)).
-      - Repeating a request with the same key and body returns the original response.
-      - The same key with a different body returns 422.
-      - The same key while the first request is still running returns 409.
-      - Keys are kept for 24 hours.
+      - Repeating a request with the same key and body returns the original response: same
+        status, body, `Location` and `ETag`.
+      - The same key with a different request (body, path or method) returns 422.
+      - The same key while the first request is still running waits for it (up to 5 s) and
+        then returns its response; if the first is still running after 5 s, 409.
+      - Only successful (2xx) responses are stored. A request that failed can be retried with
+        the same key and runs again.
+      - Keys are kept for 24 hours; after that, the key can be reused.
     - **Out of scope.** `GET /healthz` (process liveness, see decision 0007) is served by the
       same process but is an ops endpoint, not part of this contract.
     - **Concurrency.** Cases carry a `version`, also sent as a strong `ETag` (`"3"`).
@@ -84,7 +88,11 @@ paths:
       tags: [alerts]
       operationId: createAlert
       summary: Raise an alert
-      description: Called by the scoring worker. New alerts start `OPEN`.
+      description: |
+        Called by the scoring worker. New alerts start `OPEN`. The alert's window is derived
+        from the cited transactions: from the earliest to one minute after the latest.
+        - 422 if the account doesn't exist, or a cited transaction doesn't exist or doesn't
+          involve the account.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -543,7 +551,7 @@ components:
       required: true
       description: |
         Unique per logical request; a UUID is recommended. Reuse it only when retrying the same
-        request. Missing returns 400.
+        request (see Idempotency above). Missing returns 400.
       schema:
         $ref: '#/components/schemas/IdempotencyKeyValue'
       example: 4f3c9a2e-8d1b-4c7e-9f6a-2b5d8e1c0a73
@@ -588,7 +596,8 @@ components:
     Conflict:
       description: |
         Not allowed in the resource's current state: an invalid status transition, an alert
-        already in a case, a second decision, or the same `Idempotency-Key` still in flight.
+        already in a case, a second decision, or the same `Idempotency-Key` still in flight
+        after 5 s.
       content:
         application/problem+json:
           schema:

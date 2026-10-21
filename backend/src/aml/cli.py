@@ -103,6 +103,17 @@ def seed() -> None:
     echo(f"seconds: {report.seconds}")
 
 
+@app.command(name="sweep-idempotency-keys")
+def sweep_idempotency_keys() -> None:
+    """Delete Idempotency-Keys older than 24 hours (run on a schedule once there is one)."""
+    from aml.api import database
+    from aml.api.idempotency import sweep
+
+    with database.engine().begin() as conn:
+        deleted = sweep(conn)
+    typer.echo(f"deleted {deleted:,} expired idempotency keys")
+
+
 @app.command()
 def train() -> None:
     """Train the scoring model."""

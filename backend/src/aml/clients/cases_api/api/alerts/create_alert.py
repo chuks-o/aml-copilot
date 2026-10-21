@@ -99,7 +99,10 @@ def sync_detailed(
 ) -> Response[Alert | Problem | ValidationProblem]:
     """Raise an alert
 
-     Called by the scoring worker. New alerts start `OPEN`.
+     Called by the scoring worker. New alerts start `OPEN`. The alert's window is derived
+    from the cited transactions: from the earliest to one minute after the latest.
+    - 422 if the account doesn't exist, or a cited transaction doesn't exist or doesn't
+      involve the account.
 
     Args:
         idempotency_key (str):
@@ -133,7 +136,10 @@ def sync(
 ) -> Alert | Problem | ValidationProblem | None:
     """Raise an alert
 
-     Called by the scoring worker. New alerts start `OPEN`.
+     Called by the scoring worker. New alerts start `OPEN`. The alert's window is derived
+    from the cited transactions: from the earliest to one minute after the latest.
+    - 422 if the account doesn't exist, or a cited transaction doesn't exist or doesn't
+      involve the account.
 
     Args:
         idempotency_key (str):
@@ -162,7 +168,10 @@ async def asyncio_detailed(
 ) -> Response[Alert | Problem | ValidationProblem]:
     """Raise an alert
 
-     Called by the scoring worker. New alerts start `OPEN`.
+     Called by the scoring worker. New alerts start `OPEN`. The alert's window is derived
+    from the cited transactions: from the earliest to one minute after the latest.
+    - 422 if the account doesn't exist, or a cited transaction doesn't exist or doesn't
+      involve the account.
 
     Args:
         idempotency_key (str):
@@ -194,7 +203,10 @@ async def asyncio(
 ) -> Alert | Problem | ValidationProblem | None:
     """Raise an alert
 
-     Called by the scoring worker. New alerts start `OPEN`.
+     Called by the scoring worker. New alerts start `OPEN`. The alert's window is derived
+    from the cited transactions: from the earliest to one minute after the latest.
+    - 422 if the account doesn't exist, or a cited transaction doesn't exist or doesn't
+      involve the account.
 
     Args:
         idempotency_key (str):

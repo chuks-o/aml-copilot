@@ -26,7 +26,12 @@ os.environ.update(
     }
 )
 
-pytest_plugins = ["tests.fixtures.postgres", "tests.fixtures.rabbitmq", "tests.fixtures.fake_llm"]
+pytest_plugins = [
+    "tests.fixtures.postgres",
+    "tests.fixtures.rabbitmq",
+    "tests.fixtures.fake_llm",
+    "tests.fixtures.fakes",
+]
 
 TESTS = Path(__file__).resolve().parent
 TIERS = ("unit", "integration", "contract")
