@@ -1,7 +1,7 @@
 # Backend tasks. Also called by the root Makefile.
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint fmt typecheck test test-integration contract bench-pagination codegen download migrate seed replay eval-smoke notebooks
+.PHONY: help install lint fmt typecheck test test-integration contract bench-pagination sweep-idempotency-keys codegen download migrate seed replay eval-smoke notebooks
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
@@ -26,6 +26,9 @@ test: ## Unit and contract tests (no Docker needed)
 
 test-integration: ## Integration tests against real Postgres and RabbitMQ containers (needs Docker)
 	uv run pytest -m integration
+
+sweep-idempotency-keys: ## Delete Idempotency-Keys older than 24 hours (no scheduler yet)
+	uv run aml sweep-idempotency-keys
 
 bench-pagination: ## Keyset vs OFFSET on the largest bank-70 hub (needs `make up` + `make seed`)
 	uv run python scripts/bench_pagination.py

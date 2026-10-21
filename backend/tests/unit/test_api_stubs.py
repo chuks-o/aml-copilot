@@ -1,8 +1,12 @@
 """Stub behaviour the contract test only reaches by chance: success paths and state rules."""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from aml.api.app import app
+
+# The write routes reach the database through the unit of work; here it is in memory.
+pytestmark = pytest.mark.usefixtures("memory_writes")
 
 client = TestClient(app)
 CASE = "0b6f1c1e-5d2a-4a8e-9a43-7c1d2e3f4a5b"
@@ -55,8 +59,10 @@ def test_override_must_differ_from_the_recommendation() -> None:
     close = {"action": "OVERRIDE", "outcome": "CLOSE", **DECISION}
     same = {"action": "OVERRIDE", "outcome": "ESCALATE", **DECISION}
 
-    assert client.post(url, json=close, headers={**V1, **KEY}).json()["status"] == "CLOSED"
-    assert client.post(url, json=same, headers={**V1, **KEY}).status_code == 409
+    # Different requests need different Idempotency-Keys (reusing one is a 422).
+    close_key, same_key = {"Idempotency-Key": "k-close"}, {"Idempotency-Key": "k-same"}
+    assert client.post(url, json=close, headers={**V1, **close_key}).json()["status"] == "CLOSED"
+    assert client.post(url, json=same, headers={**V1, **same_key}).status_code == 409
 
 
 def test_create_requires_an_idempotency_key_and_reuses_ids_for_the_same_key() -> None:

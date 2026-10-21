@@ -62,7 +62,7 @@ def test_upgrade_downgrade_upgrade_round_trip(scratch_database: Engine) -> None:
         "sequences": {"transactions_id_seq"} | IDENTITY_SEQUENCES,
         "functions": {"case_events_append_only"},
         "extensions": {"vector"},
-        "version": {"0001"},
+        "version": {"0002"},
     }
 
     command.upgrade(config, "head")

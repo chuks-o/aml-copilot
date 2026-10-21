@@ -8,9 +8,10 @@ The stubs are stateless. Each write stub assumes the case state that makes its r
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Header, Query, Response
+from fastapi import APIRouter, Body, Header, Query, Request, Response
 
 from aml.api import placeholders
+from aml.api.idempotency import StoredResponse
 from aml.api.problems import ProblemError
 from aml.api.schemas import (
     Action,
@@ -29,6 +30,7 @@ from aml.api.schemas import (
     PageLimit,
     Typology,
 )
+from aml.api.unit_of_work import Work, idempotent
 
 router = APIRouter(tags=["cases"])
 
@@ -66,18 +68,22 @@ def list_cases(
     return CasePage(items=items[:limit], next_cursor=None, total_estimate=len(items))
 
 
-@router.post("/cases", operation_id="createCase", status_code=201)
-def create_case(body: CaseCreate, response: Response, idempotency_key: IdempotencyKey) -> Case:
-    case = placeholders.case(
-        placeholders.id_for(idempotency_key, "case"),
-        account_id=body.account_id,
-        # A set (uniqueItems), so the client's order is gone: the opening alert is the
-        # earliest created one, not position 0 (0019).
-        alert_ids=sorted(body.alert_ids),
-    )
-    response.headers["Location"] = f"/cases/{case.id}"
-    response.headers["ETag"] = _etag(case)
-    return case
+@router.post("/cases", operation_id="createCase", status_code=201, response_model=Case)
+def create_case(
+    body: CaseCreate, request: Request, work: Work, idempotency_key: IdempotencyKey
+) -> Response:
+    def write() -> StoredResponse:  # placeholder body; idempotency is real (0025)
+        case = placeholders.case(
+            placeholders.id_for(idempotency_key, "case"),
+            account_id=body.account_id,
+            # A set (uniqueItems), so the client's order is gone: the opening alert is the
+            # earliest created one, not position 0 (0019).
+            alert_ids=sorted(body.alert_ids),
+        )
+        headers = {"Location": f"/cases/{case.id}", "ETag": _etag(case)}
+        return StoredResponse.of(201, case, headers)
+
+    return idempotent(work, idempotency_key, request, body, write)
 
 
 @router.get("/cases/{case_id}", operation_id="getCase")
@@ -100,40 +106,45 @@ def change_case_status(
     return updated
 
 
-@router.post("/cases/{case_id}/decisions", operation_id="createCaseDecision")
+@router.post("/cases/{case_id}/decisions", operation_id="createCaseDecision", response_model=Case)
 def create_case_decision(
     case_id: UUID,
     body: Annotated[DecisionCreate, Body()],
-    response: Response,
+    request: Request,
+    work: Work,
     if_match: IfMatch,
     idempotency_key: IdempotencyKey,
-) -> Case:
-    recommendation = placeholders.recommendation()
-    current = placeholders.case(case_id, status=CaseStatus.COMPLETE, recommendation=recommendation)
-    _check_version(if_match, current)
-    if current.status not in DECIDABLE:
-        raise ProblemError(409, f"A {current.status} case cannot be decided.")
-    if isinstance(body, ApproveDecision):
-        outcome = recommendation.outcome
-    elif body.outcome == recommendation.outcome:
-        raise ProblemError(409, "An override must choose a different outcome than recommended.")
-    else:
-        outcome = body.outcome
-    decision = Decision(
-        id=placeholders.id_for(idempotency_key, "decision"),
-        case_id=case_id,
-        action=Action(body.action),
-        outcome=outcome,
-        reason=body.reason,
-        analyst_id=body.analyst_id,
-        created_at=placeholders.UPDATED_AT,
-    )
-    updated = current.model_copy(
-        update={
-            "status": OUTCOME_STATUS[outcome],
-            "version": current.version + 1,
-            "decision": decision,
-        }
-    )
-    response.headers["ETag"] = _etag(updated)
-    return updated
+) -> Response:
+    def write() -> StoredResponse:  # placeholder body; idempotency is real (0025)
+        recommendation = placeholders.recommendation()
+        current = placeholders.case(
+            case_id, status=CaseStatus.COMPLETE, recommendation=recommendation
+        )
+        _check_version(if_match, current)
+        if current.status not in DECIDABLE:
+            raise ProblemError(409, f"A {current.status} case cannot be decided.")
+        if isinstance(body, ApproveDecision):
+            outcome = recommendation.outcome
+        elif body.outcome == recommendation.outcome:
+            raise ProblemError(409, "An override must choose a different outcome than recommended.")
+        else:
+            outcome = body.outcome
+        decision = Decision(
+            id=placeholders.id_for(idempotency_key, "decision"),
+            case_id=case_id,
+            action=Action(body.action),
+            outcome=outcome,
+            reason=body.reason,
+            analyst_id=body.analyst_id,
+            created_at=placeholders.UPDATED_AT,
+        )
+        updated = current.model_copy(
+            update={
+                "status": OUTCOME_STATUS[outcome],
+                "version": current.version + 1,
+                "decision": decision,
+            }
+        )
+        return StoredResponse.of(200, updated, {"ETag": _etag(updated)})
+
+    return idempotent(work, idempotency_key, request, body, write)

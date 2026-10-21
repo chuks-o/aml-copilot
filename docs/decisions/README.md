@@ -30,3 +30,4 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0022](0022-schema-v1.md) | Schema v1 (migration 0001) | Accepted (T10) |
 | [0023](0023-seed-and-download.md) | `aml download` and `aml seed`: loading HI-Small with synthetic KYC | Accepted (T11) |
 | [0024](0024-account-pagination.md) | Real account transactions and counterparties: keyset pagination over both sides | Accepted (T12) |
+| [0025](0025-idempotency.md) | Idempotency-Key: one transaction, wait on the row lock, replay exact bytes | Accepted (T13) |

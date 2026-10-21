@@ -18,7 +18,9 @@ import uvicorn
 
 from aml.api.app import app
 from aml.api.routes.accounts import accounts_repository
+from aml.api.unit_of_work import unit_of_work
 from tests.contract.fake_accounts import FakeAccountsRepository
+from tests.fixtures.fakes import MemoryUnitOfWork
 
 BACKEND = Path(__file__).resolve().parents[2]
 SCHEMATHESIS = Path(sys.executable).parent / "schemathesis"
@@ -32,6 +34,8 @@ def live_server() -> Iterator[str]:
     the SQL is covered by tests/integration (0024).
     """
     app.dependency_overrides[accounts_repository] = FakeAccountsRepository
+    work = MemoryUnitOfWork()
+    app.dependency_overrides[unit_of_work] = lambda: work
     server = uvicorn.Server(
         uvicorn.Config(app, host="127.0.0.1", port=0, log_config=None, access_log=False)
     )

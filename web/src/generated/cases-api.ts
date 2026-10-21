@@ -19,7 +19,10 @@ export interface paths {
         put?: never;
         /**
          * Raise an alert
-         * @description Called by the scoring worker. New alerts start `OPEN`.
+         * @description Called by the scoring worker. New alerts start `OPEN`. The alert's window is derived
+         *     from the cited transactions: from the earliest to one minute after the latest.
+         *     - 422 if the account doesn't exist, or a cited transaction doesn't exist or doesn't
+         *       involve the account.
          */
         post: operations["createAlert"];
         delete?: never;
@@ -558,7 +561,8 @@ export interface components {
         };
         /**
          * @description Not allowed in the resource's current state: an invalid status transition, an alert
-         *     already in a case, a second decision, or the same `Idempotency-Key` still in flight.
+         *     already in a case, a second decision, or the same `Idempotency-Key` still in flight
+         *     after 5 s.
          */
         Conflict: {
             headers: {
@@ -641,7 +645,7 @@ export interface components {
         Cursor: components["schemas"]["Cursor"];
         /**
          * @description Unique per logical request; a UUID is recommended. Reuse it only when retrying the same
-         *     request. Missing returns 400.
+         *     request (see Idempotency above). Missing returns 400.
          * @example 4f3c9a2e-8d1b-4c7e-9f6a-2b5d8e1c0a73
          */
         IdempotencyKey: components["schemas"]["IdempotencyKeyValue"];
@@ -702,7 +706,7 @@ export interface operations {
             header: {
                 /**
                  * @description Unique per logical request; a UUID is recommended. Reuse it only when retrying the same
-                 *     request. Missing returns 400.
+                 *     request (see Idempotency above). Missing returns 400.
                  * @example 4f3c9a2e-8d1b-4c7e-9f6a-2b5d8e1c0a73
                  */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
@@ -917,7 +921,7 @@ export interface operations {
             header: {
                 /**
                  * @description Unique per logical request; a UUID is recommended. Reuse it only when retrying the same
-                 *     request. Missing returns 400.
+                 *     request (see Idempotency above). Missing returns 400.
                  * @example 4f3c9a2e-8d1b-4c7e-9f6a-2b5d8e1c0a73
                  */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
@@ -1033,7 +1037,7 @@ export interface operations {
                 "If-Match": components["parameters"]["IfMatch"];
                 /**
                  * @description Unique per logical request; a UUID is recommended. Reuse it only when retrying the same
-                 *     request. Missing returns 400.
+                 *     request (see Idempotency above). Missing returns 400.
                  * @example 4f3c9a2e-8d1b-4c7e-9f6a-2b5d8e1c0a73
                  */
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
