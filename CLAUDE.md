@@ -20,7 +20,7 @@ Working rules for this repo. They apply to every change, human or agent. The rea
 - Modules outside `aml.api` never import it; they call it through the generated client in `aml.clients` (`cases_api_client()`). Only `aml.clients` may import `httpx`. import-linter enforces both (`make lint`).
 - Generated code (`web/src/generated/`, `backend/src/aml/clients/cases_api/`, `backend/src/aml/api/schemas.py`) is never edited by hand. Change the contract (`backend/openapi.yaml`, `web/src/graphql/`), run `make codegen` and commit the output; `make codegen-check` (and CI) fails otherwise.
 - `aml.api` request and response models come from `aml.api.schemas` (generated from `openapi.yaml`); never hand-write a model the spec already defines.
-- Only `aml.api` owns the database: migrations live in `backend/migrations`, and only `aml.api` and the `aml` CLI may import `aml.db`. import-linter enforces this too.
+- Only `aml.api` owns the database: migrations live in `backend/migrations`, and only `aml.api`, the `aml` CLI and the two bulk `COPY` loaders (`aml.data` for `aml seed`, `aml.ingest` for `aml replay`; decisions 0023, 0026) may import `aml.db`. import-linter enforces this too.
 - All outbound network calls go through the retry helper in `aml.common` (added later). Don't write ad-hoc retry loops in the meantime.
 - No secrets in code. Configuration and credentials come from the environment (`.env`, documented in `.env.example`).
 - Tests never call real LLM APIs or the internet. Fake or stub them (`FakeLLM` in `backend/tests/fixtures`). pytest-socket blocks anything but localhost.
