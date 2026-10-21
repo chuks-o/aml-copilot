@@ -1,6 +1,7 @@
 """``aml replay``: stream HI-Small into Postgres as if it were arriving live.
 
-Rows go in ``(ts, id)`` order. A row is due when both the rate cap (``rate`` rows/s) and the
+Rows go in ``(ts, id)`` order, streamed from a sorted copy of the file (never the whole file in
+memory, 0027). A row is due when both the rate cap (``rate`` rows/s) and the
 time compression (``compression`` dataset seconds per wall second) allow it; either can be 0
 for "off". Due rows are written in batches of up to ``batch_size``, flushed early once the
 oldest has waited ``flush_after`` seconds. Each batch is one transaction:
@@ -16,11 +17,13 @@ oldest has waited ``flush_after`` seconds. Each batch is one transaction:
 Rationale: docs/decisions/0026-replayer.md.
 """
 
+import csv
+import heapq
 import io
 import json
 import statistics
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -32,6 +35,8 @@ import psycopg
 from aml import db
 from aml.common import get_logger
 from aml.data import dataset
+from aml.ingest.monitor import Monitor
+from aml.ingest.rules import MonitorConfig
 
 log = get_logger(__name__)
 
@@ -67,6 +72,7 @@ class ReplayConfig:
     flush_after: float = 1.0  # seconds a due row may wait for its batch to fill
     report_every: float = 10.0
     from_start: bool = False  # ignore the stored watermark
+    rules: MonitorConfig | None = None  # monitoring rules to run per batch (None: off, 0028)
 
 
 @dataclass
@@ -78,43 +84,127 @@ class ReplayReport:
     seconds: float = 0.0
     corrupted_ids: list[int] = field(default_factory=list)
     position: dict[str, Any] | None = None
+    alerts_by_rule: dict[str, int] = field(default_factory=dict)
+    alert_lags_ms: list[float] = field(default_factory=list)
+    alert_errors: list[str] = field(default_factory=list)
+
+    @property
+    def alerts(self) -> int:
+        return sum(self.alerts_by_rule.values())
+
+    def alert_lag_p95_ms(self) -> float | None:
+        return round(_p95(self.alert_lags_ms), 1) if self.alert_lags_ms else None
 
 
 # ------------------------------------------------------------------------- loading
+#
+# Never the whole file in memory (0027): an external sort writes a time-ordered copy once
+# (sorted runs of RUN_ROWS, merged with heapq), then each replay streams that copy in chunks.
+
+CACHE_DIR = ".replay-cache"
+RUN_ROWS = 250_000  # rows sorted in memory at a time while building the cache
+READ_ROWS = 50_000  # rows read from the cache at a time while replaying
+_KEY = ("ts_raw", "id")
+
+
+def sorted_copy(raw_dir: Path, *, echo: Callable[[str], None] = print) -> Path:
+    """``(ts, id)``-ordered copy of the transactions file, with ``id`` (file position) added.
+
+    Built once, then reused until the source file's SHA-256 changes. Memory: one run.
+    """
+    source = raw_dir / dataset.TRANSACTIONS_FILE
+    cache = raw_dir / CACHE_DIR
+    out, meta = cache / "transactions_sorted.csv", cache / "transactions_sorted.json"
+    digest = dataset.sha256(source)
+    if out.is_file() and meta.is_file() and json.loads(meta.read_text()).get("sha256") == digest:
+        return out
+    echo(f"sorting {source.name} by (ts, id) into {out} (once per source file)")
+    cache.mkdir(parents=True, exist_ok=True)
+    names = dataset.transaction_columns(source)
+    columns = ["id", *names]
+    runs: list[Path] = []
+    offset = 0
+    for chunk in dataset.read_transactions_chunks(source, RUN_ROWS):
+        chunk.insert(0, "id", np.arange(offset + 1, offset + len(chunk) + 1))
+        offset += len(chunk)
+        # "YYYY/MM/DD HH:MM" sorts correctly as text; id breaks ties.
+        run = cache / f"run_{len(runs):04d}.csv"
+        chunk.sort_values(list(_KEY), kind="stable").to_csv(run, header=False, index=False)
+        runs.append(run)
+    handles = [run.open(newline="") for run in runs]
+    try:
+        readers = [csv.reader(h) for h in handles]
+        ts_at, id_at = columns.index("ts_raw"), columns.index("id")
+        merged = heapq.merge(*readers, key=lambda row: (row[ts_at], int(row[id_at])))
+        partial = out.with_suffix(".partial")
+        with partial.open("w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(columns)
+            writer.writerows(merged)
+        partial.replace(out)  # never leave a half-written cache behind
+    finally:
+        for handle in handles:
+            handle.close()
+        for run in runs:
+            run.unlink()
+    meta.write_text(json.dumps({"sha256": digest, "rows": offset}))
+    return out
+
+
+def stream_ordered(
+    raw_dir: Path, *, echo: Callable[[str], None] = print, rows: int = READ_ROWS
+) -> Iterator[pd.DataFrame]:
+    """Chunks of rows in ``(ts, id)`` order, as raw text plus ``id``, ``pattern``, ``sort_ts``."""
+    patterns = dataset.read_patterns(raw_dir / dataset.PATTERNS_FILE)
+    keys = list(dataset.JOIN_KEY)
+    lookup = patterns[[*keys, "pattern"]]
+    for chunk in pd.read_csv(
+        sorted_copy(raw_dir, echo=echo), dtype=str, keep_default_na=False, chunksize=rows
+    ):
+        chunk["id"] = chunk["id"].astype("int64")
+        labelled = chunk.merge(lookup, on=keys, how="left").set_axis(chunk.index)
+        laundering = chunk["is_laundering_raw"] == "1"
+        pattern = labelled["pattern"].where(labelled["pattern"].notna(), None)
+        chunk["pattern"] = pattern.where(~(laundering & pattern.isna()), dataset.UNLISTED)
+        chunk["sort_ts"] = pd.to_datetime(chunk["ts_raw"], format="%Y/%m/%d %H:%M", utc=True)
+        yield chunk
 
 
 def load_ordered(raw_dir: Path) -> pd.DataFrame:
-    """Every row as raw text, with its id (file position), pattern and original sort key."""
-    raw = dataset.read_transactions(raw_dir / dataset.TRANSACTIONS_FILE)
-    patterns = dataset.read_patterns(raw_dir / dataset.PATTERNS_FILE)
-    raw["pattern"] = dataset.join_patterns(raw, patterns)
-    raw["id"] = np.arange(1, len(raw) + 1)
-    raw["sort_ts"] = pd.to_datetime(raw["ts_raw"], format="%Y/%m/%d %H:%M", utc=True)
-    return raw.sort_values(["sort_ts", "id"], kind="stable", ignore_index=True)
+    """All rows in order, in memory: for small files (tests). Replays use ``stream_ordered``."""
+    return pd.concat(list(stream_ordered(raw_dir, echo=lambda _: None)), ignore_index=True)
 
 
-def corrupt(rows: pd.DataFrame, rate: float, seed: int, total: int) -> list[int]:
+def _unit(ids: "np.ndarray[Any, Any]", seed: int, salt: int) -> "np.ndarray[Any, Any]":
+    """A uniform number in [0, 1) per id, from (seed, salt, id) alone (splitmix64)."""
+    x = ids.astype(np.uint64) * np.uint64(0x9E3779B97F4A7C15)
+    x ^= np.uint64((seed * 1_000_003 + salt) & 0xFFFFFFFFFFFFFFFF)
+    for shift, multiplier in ((30, 0xBF58476D1CE4E5B9), (27, 0x94D049BB133111EB)):
+        x = (x ^ (x >> np.uint64(shift))) * np.uint64(multiplier)
+    x ^= x >> np.uint64(31)
+    return np.asarray((x >> np.uint64(11)).astype(np.float64) / float(1 << 53))
+
+
+def corrupt(rows: pd.DataFrame, rate: float, seed: int) -> list[int]:
     """Damage about ``rate`` of the rows in place; returns their ids.
 
-    Chosen by file position (``seed`` over all ``total`` rows), so --limit and resuming
-    never change which rows are damaged.
+    Whether a row is damaged, and how, depends only on (seed, its id), so --limit, resuming
+    and chunking never change it.
     """
-    if rate <= 0:
+    if rate <= 0 or rows.empty:
         return []
-    chosen = np.random.default_rng(seed).random(total) < rate
-    kind_of = (np.cumsum(chosen) - 1) % len(CORRUPTIONS)  # round-robin in file order
     ids = rows["id"].to_numpy()
-    positions = np.flatnonzero(chosen[ids - 1])
-    picked = rows.index[positions]
-    for position, index in zip(positions, picked, strict=True):
-        kind = CORRUPTIONS[int(kind_of[ids[position] - 1])]
+    positions = np.flatnonzero(_unit(ids, seed, 0) < rate)
+    kinds = (_unit(ids, seed, 1) * len(CORRUPTIONS)).astype(int)
+    for position in positions:
+        index, kind = rows.index[int(position)], CORRUPTIONS[kinds[position]]
         if kind == "currency":
             rows.at[index, "currency_paid_name"] = BAD_CURRENCY
         elif kind == "amount":
             rows.at[index, "amount_paid"] = "-" + str(rows.at[index, "amount_paid"])
         else:
             rows.at[index, "ts_raw"] = BAD_TIMESTAMP
-    return sorted(int(i) for i in rows.loc[picked, "id"])
+    return sorted(int(i) for i in ids[positions])
 
 
 # ---------------------------------------------------------------------- validation
@@ -272,17 +362,78 @@ class _Window:
     latencies: list[float] = field(default_factory=list)
 
 
-def due_times(sort_ts: "pd.Series[pd.Timestamp]", config: ReplayConfig) -> "np.ndarray[Any, Any]":
+def due_times(
+    sort_ts: "pd.Series[pd.Timestamp]",
+    config: ReplayConfig,
+    *,
+    first_ts: pd.Timestamp | None = None,
+    offset: int = 0,
+) -> "np.ndarray[Any, Any]":
     """Seconds after start at which each row may be sent: the later of its rate slot and its
-    compressed dataset time. Non-decreasing, since both are."""
+    compressed dataset time. Non-decreasing, since both are. ``offset`` is how many rows came
+    before these and ``first_ts`` the replay's first timestamp, so chunks line up."""
     n = len(sort_ts)
-    by_rate = np.arange(n) / config.rate if config.rate > 0 else np.zeros(n)
+    by_rate = (offset + np.arange(n)) / config.rate if config.rate > 0 else np.zeros(n)
     if config.compression > 0 and n:
-        offsets = (sort_ts - sort_ts.iloc[0]).dt.total_seconds().to_numpy()
-        by_time = offsets / config.compression
+        origin = sort_ts.iloc[0] if first_ts is None else first_ts
+        by_time = (sort_ts - origin).dt.total_seconds().to_numpy() / config.compression
     else:
         by_time = np.zeros(n)
     return np.asarray(np.maximum(by_rate, by_time), dtype=np.float64)
+
+
+class _Pending:
+    """Rows read but not yet written, refilled from the stream a chunk at a time."""
+
+    def __init__(self, chunks: Iterator[pd.DataFrame], config: ReplayConfig, report: ReplayReport):
+        self._chunks, self._config, self._report = chunks, config, report
+        self.rows = pd.DataFrame()
+        self.due: np.ndarray[Any, Any] = np.zeros(0)
+        self.exhausted = False
+        self._consumed = 0  # rows taken from the stream so far (for rate slots and --limit)
+        self._first_ts: pd.Timestamp | None = None
+
+    def fill(self, at_least: int) -> None:
+        """Read chunks until ``at_least`` rows are pending or the stream (or --limit) ends."""
+        limit = self._config.limit
+        while len(self.rows) < at_least and not self.exhausted:
+            chunk = next(self._chunks, None)
+            if chunk is not None and limit is not None:
+                chunk = chunk.iloc[: max(0, limit - self._consumed)]
+            if chunk is None or chunk.empty:
+                self.exhausted = True
+                break
+            chunk = chunk.reset_index(drop=True)
+            if self._first_ts is None:
+                self._first_ts = chunk["sort_ts"].iloc[0]
+            self._report.corrupted_ids += corrupt(
+                chunk, self._config.corrupt_rate, self._config.seed
+            )
+            due = due_times(
+                chunk["sort_ts"], self._config, first_ts=self._first_ts, offset=self._consumed
+            )
+            self._consumed += len(chunk)
+            self.rows = pd.concat([self.rows, chunk], ignore_index=True)
+            self.due = np.concatenate([self.due, due])
+
+    def take(self, count: int) -> pd.DataFrame:
+        batch = self.rows.iloc[:count]
+        self.rows, self.due = self.rows.iloc[count:].reset_index(drop=True), self.due[count:]
+        return batch
+
+
+def _resumed(
+    chunks: Iterator[pd.DataFrame], position: dict[str, Any] | None
+) -> Iterator[pd.DataFrame]:
+    """Drop rows at or before the watermark (the stream is ordered, so only early chunks)."""
+    if position is None:
+        yield from chunks
+        return
+    ts, row_id = pd.Timestamp(position["ts"]), int(position["id"])
+    for chunk in chunks:
+        later = (chunk["sort_ts"] > ts) | ((chunk["sort_ts"] == ts) & (chunk["id"] > row_id))
+        if later.any():
+            yield chunk[later]
 
 
 def replay(
@@ -294,20 +445,15 @@ def replay(
     sleep: Callable[[float], None] = time.sleep,
 ) -> ReplayReport:
     config = config or ReplayConfig()
-    rows = load_ordered(raw_dir)
-    total = len(rows)
     with db.connect() as connection:
         writer = BatchWriter(connection)
+        monitor = Monitor(connection, config.rules) if config.rules is not None else None
         resume = None if config.from_start else writer.position()
         if resume is not None:
-            ts, row_id = pd.Timestamp(resume["ts"]), int(resume["id"])
-            later = (rows["sort_ts"] > ts) | ((rows["sort_ts"] == ts) & (rows["id"] > row_id))
-            rows = rows[later].reset_index(drop=True)
-            echo(f"resuming after {resume['ts']} id {resume['id']}: {len(rows):,} rows left")
-        if config.limit is not None:
-            rows = rows.iloc[: config.limit].reset_index(drop=True)
-        report = ReplayReport(corrupted_ids=corrupt(rows, config.corrupt_rate, config.seed, total))
-        due = due_times(rows["sort_ts"], config)
+            echo(f"resuming after {resume['ts']} id {resume['id']}")
+        report = ReplayReport()
+        pending = _Pending(_resumed(stream_ordered(raw_dir, echo=echo), resume), config, report)
+        pending.fill(config.batch_size)
 
         start = clock()
         window = _Window(start=start)
@@ -324,6 +470,8 @@ def replay(
                 "batch_ms_p50": round(statistics.median(latencies), 1),
                 "batch_ms_p95": round(_p95(latencies), 1),
                 "position": report.position,
+                "alerts": report.alerts,
+                "alert_lag_ms_p95": report.alert_lag_p95_ms(),
             }
             log.info("replay_finished" if final else "replay_progress", **fields)
             echo(
@@ -331,35 +479,50 @@ def replay(
                 f"{report.committed:,} committed, {report.quarantined:,} quarantined, "
                 f"{report.duplicates:,} duplicates, batch p50 {fields['batch_ms_p50']} ms "
                 f"p95 {fields['batch_ms_p95']} ms"
+                + (
+                    f", {report.alerts:,} alerts (lag p95 {report.alert_lag_p95_ms()} ms)"
+                    if monitor is not None
+                    else ""
+                )
             )
             window.start, window.rows, window.latencies = now, 0, []
 
-        begin, n = 0, len(rows)
-        while begin < n:
+        while len(pending.rows):
             elapsed = clock() - start
-            ready = int(np.searchsorted(due, elapsed, side="right"))
-            end = min(n, begin + config.batch_size, max(ready, begin))
-            waited = elapsed - due[begin] if end > begin else 0.0
-            if end > begin and (
-                end - begin >= config.batch_size or end == n or waited >= config.flush_after
-            ):
+            n = len(pending.rows)
+            ready = int(np.searchsorted(pending.due, elapsed, side="right"))
+            end = min(n, config.batch_size, ready)
+            waited = elapsed - pending.due[0] if end > 0 else 0.0
+            last_rows = pending.exhausted and end == n
+            if end > 0 and (end >= config.batch_size or last_rows or waited >= config.flush_after):
+                batch = pending.take(end)
                 batch_start = clock()
-                committed, quarantined, duplicates = writer.write(rows.iloc[begin:end])
-                window.latencies.append((clock() - batch_start) * 1000)
-                window.rows += end - begin
+                committed, quarantined, duplicates = writer.write(batch)
+                committed_at = clock()
+                window.latencies.append((committed_at - batch_start) * 1000)
+                if monitor is not None:
+                    result = monitor.evaluate(batch["id"].tolist(), committed_at)
+                    for rule_id, count in result.alerts_by_rule.items():
+                        report.alerts_by_rule[rule_id] = (
+                            report.alerts_by_rule.get(rule_id, 0) + count
+                        )
+                    report.alert_lags_ms += result.lags_ms
+                    report.alert_errors += result.errors
+                window.rows += len(batch)
                 report.committed += committed
                 report.quarantined += quarantined
                 report.duplicates += duplicates
                 report.batches += 1
-                last = rows.iloc[end - 1]
+                last = batch.iloc[-1]
                 report.position = {"ts": last["sort_ts"].isoformat(), "id": int(last["id"])}
-                begin = end
+                pending.fill(config.batch_size)
                 if clock() - window.start >= config.report_every:
                     emit()
                 continue
-            next_due = due[end] if end < n else float("inf")
-            flush_at = due[begin] + config.flush_after if end > begin else float("inf")
+            next_due = pending.due[end] if end < n else float("inf")
+            flush_at = pending.due[0] + config.flush_after if end > 0 else float("inf")
             sleep(max(0.0, min(next_due, flush_at) - (clock() - start)))
+        report.corrupted_ids.sort()
         report.seconds = round(clock() - start, 2)
         emit(final=True)
     return report

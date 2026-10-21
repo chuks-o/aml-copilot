@@ -1,0 +1,36 @@
+# Monitoring rule thresholds (aml.ingest.rules). Rationale and tuning method:
+# docs/decisions/0028-monitoring-rules.md.
+#
+# Set from the DEV period only (2022-09-01 up to 2022-09-06). Never adjust a threshold after
+# looking at the test period (2022-09-06 up to ANALYSIS_END); `make tune-rules` reads dev
+# rows only. Bump `version` whenever a threshold changes: it is part of each alert's
+# model_version, so alerts from different thresholds are never mixed up.
+version: rules-v1
+
+dev_period:
+  start: "2022-09-01T00:00:00Z"
+  end: "2022-09-06T00:00:00Z"  # exclusive; the test period starts here
+
+# Segmentation: the bank-70 hubs (accounts.is_high_volume, 6,468+ transactions each) are
+# monitored by a separate process, not by these thresholds.
+skip_high_volume: true
+
+rules:
+  fan_in:
+    window_hours: 24
+    min_counterparties: 5
+  fan_out:
+    window_hours: 24
+    min_counterparties: 5
+  pass_through:
+    window_hours: 2
+    tolerance: 0.05  # |out - in| <= 5% of in, same currency
+  structuring:
+    window_hours: 48
+    min_count: 3
+    band: 0.10  # amounts in [90%, 100%) of the threshold
+    thresholds:  # per currency: one nominal amount means different money in JPY and USD
+      USD: 10000
+  new_counterparty_burst:
+    window_hours: 6
+    min_new: 5

@@ -1,6 +1,6 @@
 # 0018 — Generated clients, committed and checked for staleness
 
-**Status:** Accepted · **Ticket:** T07 · **Date:** 2026-10-16
+**Status:** Accepted; decision 8 amended by [0028](0028-monitoring-rules.md) (the `httpx` contract forbids direct imports only) · **Ticket:** T07 · **Date:** 2026-10-16
 
 ## Context
 

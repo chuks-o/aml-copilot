@@ -1,6 +1,6 @@
 # 0026 — Transaction replayer: paced, batched, quarantined, resumable
 
-**Status:** Accepted · **Ticket:** T14 · **Date:** 2026-10-21 · **Amends:** [0012](0012-working-rules.md) decision 2 (with [0023](0023-seed-and-download.md))
+**Status:** Accepted; decisions 3 (in-memory sort) and 8 (round-robin corruption) superseded by [0027](0027-streaming-replay.md) · **Ticket:** T14 · **Date:** 2026-10-21 · **Amends:** [0012](0012-working-rules.md) decision 2 (with [0023](0023-seed-and-download.md))
 
 ## Context
 

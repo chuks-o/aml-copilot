@@ -23,7 +23,7 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0015](0015-account-id-format.md) | Account id is `<bank>:<account>`, unpadded bank code | Accepted (T05) |
 | [0016](0016-console-graphql-schema.md) | Console GraphQL schema | Accepted (T06); decision 6 refined by 0019 |
 | [0017](0017-decisions-close-cases-atomically.md) | Recording a decision closes or escalates the case, atomically | Accepted (T06) |
-| [0018](0018-generated-clients.md) | Generated clients, committed and checked for staleness | Accepted (T07) |
+| [0018](0018-generated-clients.md) | Generated clients, committed and checked for staleness | Accepted (T07); decision 8 amended by 0028 |
 | [0019](0019-stub-routes-and-contract-tests.md) | Stub routes from generated models, checked by Schemathesis | Accepted (T08); decision 6 opt-in superseded by 0020 |
 | [0020](0020-test-infrastructure.md) | Test infrastructure: tiers, real containers, Jest | Accepted (T09) |
 | [0021](0021-rabbitmq-definitions-after-boot.md) | RabbitMQ topology is imported after boot, not at boot | Accepted (T09) |
@@ -31,4 +31,6 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0023](0023-seed-and-download.md) | `aml download` and `aml seed`: loading HI-Small with synthetic KYC | Accepted (T11) |
 | [0024](0024-account-pagination.md) | Real account transactions and counterparties: keyset pagination over both sides | Accepted (T12) |
 | [0025](0025-idempotency.md) | Idempotency-Key: one transaction, wait on the row lock, replay exact bytes | Accepted (T13) |
-| [0026](0026-replayer.md) | Transaction replayer: paced, batched, quarantined, resumable | Accepted (T14) |
+| [0026](0026-replayer.md) | Transaction replayer: paced, batched, quarantined, resumable | Accepted (T14); decisions 3, 8 superseded by 0027 |
+| [0027](0027-streaming-replay.md) | Replay streams a sorted copy instead of loading the file | Accepted (T14 follow-up) |
+| [0028](0028-monitoring-rules.md) | Monitoring rules that raise alerts | Accepted (T15) |

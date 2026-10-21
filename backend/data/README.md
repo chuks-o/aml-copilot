@@ -35,4 +35,4 @@ uv run aml replay                   # 2,000 rows/s in (ts, id) order
 uv run aml replay --compression 600 --corrupt-rate 0.01   # 10 dataset minutes per second
 ```
 
-Malformed rows go to `ingest_quarantine` with the reason. Progress is printed every 10 s. A stopped replay resumes where it left off (`--from-start` starts over). Both `aml seed` and `aml replay` load the whole 475 MB file into memory (about 2.3 GB), so close memory-hungry apps first on a small machine: swap uses the same disk. How it works, and why: [decision 0026](../../docs/decisions/0026-replayer.md).
+Malformed rows go to `ingest_quarantine` with the reason. Progress is printed every 10 s. A stopped replay resumes where it left off (`--from-start` starts over). `aml replay` streams a time-sorted copy of the file (`data/raw/.replay-cache/`, about 500 MB, built once per source file in about 50 s), so it needs about 350 MB of memory. `aml seed` still loads the whole file (about 2.3 GB), so close memory-hungry apps first on a small machine: swap uses the same disk. How it works, and why: [decision 0026](../../docs/decisions/0026-replayer.md).
