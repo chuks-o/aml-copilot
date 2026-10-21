@@ -29,3 +29,4 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0021](0021-rabbitmq-definitions-after-boot.md) | RabbitMQ topology is imported after boot, not at boot | Accepted (T09) |
 | [0022](0022-schema-v1.md) | Schema v1 (migration 0001) | Accepted (T10) |
 | [0023](0023-seed-and-download.md) | `aml download` and `aml seed`: loading HI-Small with synthetic KYC | Accepted (T11) |
+| [0024](0024-account-pagination.md) | Real account transactions and counterparties: keyset pagination over both sides | Accepted (T12) |

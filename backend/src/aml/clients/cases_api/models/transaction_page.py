@@ -23,12 +23,15 @@ class TransactionPage:
     Attributes:
         items (list[Transaction]):
         next_cursor (None | str): Pass as `cursor` for the next page; `null` on the last page.
-        total (int): Exact number of transactions in the window, across all pages.
+        total (int): Transactions in the window, across all pages. Exact unless `total_is_estimate`.
+        total_is_estimate (bool): True when the window holds more than 10,000 transactions and `total` is the
+            planner's estimate (at least 10,001) instead of an exact count.
     """
 
     items: list[Transaction]
     next_cursor: None | str
     total: int
+    total_is_estimate: bool
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -44,6 +47,8 @@ class TransactionPage:
 
         total = self.total
 
+        total_is_estimate = self.total_is_estimate
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -51,6 +56,7 @@ class TransactionPage:
                 "items": items,
                 "next_cursor": next_cursor,
                 "total": total,
+                "total_is_estimate": total_is_estimate,
             }
         )
 
@@ -77,10 +83,13 @@ class TransactionPage:
 
         total = d.pop("total")
 
+        total_is_estimate = d.pop("total_is_estimate")
+
         transaction_page = cls(
             items=items,
             next_cursor=next_cursor,
             total=total,
+            total_is_estimate=total_is_estimate,
         )
 
         transaction_page.additional_properties = d

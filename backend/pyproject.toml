@@ -77,12 +77,15 @@ exclude = ["src/aml/clients/cases_api/**", "src/aml/api/schemas.py"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
+# Repositories assemble SQL from constant fragments defined in the same module; every value
+# is a bound parameter. S608 can't tell the two apart (0024).
+"src/aml/api/repositories/**" = ["S608"]
 
 [tool.mypy]
 strict = true
 python_version = "3.12"
 plugins = ["pydantic.mypy"]
-files = ["src", "tests", "migrations"]
+files = ["src", "tests", "migrations", "scripts"]
 # One name per file: src/aml/... is `aml...`, tests/... is `tests...` (as pytest imports them).
 mypy_path = ["src", "."]
 explicit_package_bases = true

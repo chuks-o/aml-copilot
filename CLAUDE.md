@@ -37,6 +37,7 @@ Working rules for this repo. They apply to every change, human or agent. The rea
 | Integration tests (real Postgres + RabbitMQ containers; needs Docker) | `make test-integration` |
 | Contract test alone, with the Schemathesis summary | `make contract` |
 | Generated clients up to date | `make codegen-check` |
+| Pagination benchmark (needs `make up` + `make seed`) | `make bench-pagination` |
 | Whole stack, healthy | `make up` (stop and wipe with `make down`) |
 
 `make help` lists every target.

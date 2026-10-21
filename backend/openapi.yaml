@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: aml-copilot Cases API
-  version: 0.2.1
+  version: 0.3.0
   summary: Alerts, accounts, transactions and investigation cases.
   description: |
     The REST API served by `aml.api`. **This file is the source of truth.** The server is
@@ -177,8 +177,13 @@ paths:
       summary: List an account's transactions
       description: |
         Transactions where the account is the payer or the payee, oldest first (`ts`
-        ascending, then `id`). Paginated by keyset on `(ts, id)`. `total` is the exact number
-        of transactions in the window, across all pages.
+        ascending, then `id`). Paginated by keyset on `(ts, id)`: every page costs the same,
+        however deep, and rows inserted while paging never cause duplicates or gaps among rows
+        that already existed.
+        - `total` is the number of transactions in the window, across all pages: exact up to
+          10,000, estimated above that (`total_is_estimate: true`).
+        - A cursor is bound to the account and window it was issued for. Reusing it with a
+          different account, `from` or `to` returns 400. `limit` may change between pages.
       parameters:
         - $ref: '#/components/parameters/AccountId'
         - name: from
@@ -193,7 +198,11 @@ paths:
           schema:
             $ref: '#/components/schemas/Timestamp'
           example: '2022-09-08T00:00:00Z'
-        - $ref: '#/components/parameters/Limit'
+        - name: limit
+          in: query
+          description: Page size.
+          schema:
+            $ref: '#/components/schemas/TransactionLimit'
         - $ref: '#/components/parameters/Cursor'
       responses:
         '200':
@@ -900,7 +909,7 @@ components:
           $ref: '#/components/schemas/PaymentFormat'
     TransactionPage:
       type: object
-      required: [items, next_cursor, total]
+      required: [items, next_cursor, total, total_is_estimate]
       properties:
         items:
           type: array
@@ -911,7 +920,13 @@ components:
         total:
           type: integer
           minimum: 0
-          description: Exact number of transactions in the window, across all pages.
+          description: |
+            Transactions in the window, across all pages. Exact unless `total_is_estimate`.
+        total_is_estimate:
+          type: boolean
+          description: |
+            True when the window holds more than 10,000 transactions and `total` is the
+            planner's estimate (at least 10,001) instead of an exact count.
 
     CounterpartyEdge:
       type: object
@@ -1142,6 +1157,11 @@ components:
       minimum: 1
       maximum: 500
       default: 50
+    TransactionLimit:
+      type: integer
+      minimum: 1
+      maximum: 500
+      default: 100
     Cursor:
       type: string
       minLength: 1

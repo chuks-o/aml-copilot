@@ -17,6 +17,8 @@ import pytest
 import uvicorn
 
 from aml.api.app import app
+from aml.api.routes.accounts import accounts_repository
+from tests.contract.fake_accounts import FakeAccountsRepository
 
 BACKEND = Path(__file__).resolve().parents[2]
 SCHEMATHESIS = Path(sys.executable).parent / "schemathesis"
@@ -24,7 +26,12 @@ SCHEMATHESIS = Path(sys.executable).parent / "schemathesis"
 
 @pytest.fixture(scope="module")
 def live_server() -> Iterator[str]:
-    """The real app on a free local port, served by uvicorn in a background thread."""
+    """The real app on a free local port, served by uvicorn in a background thread.
+
+    Routes that read the database get the in-memory fake: `make test` needs no Docker (0020);
+    the SQL is covered by tests/integration (0024).
+    """
+    app.dependency_overrides[accounts_repository] = FakeAccountsRepository
     server = uvicorn.Server(
         uvicorn.Config(app, host="127.0.0.1", port=0, log_config=None, access_log=False)
     )
@@ -39,6 +46,7 @@ def live_server() -> Iterator[str]:
     yield f"http://127.0.0.1:{port}"
     server.should_exit = True
     thread.join(timeout=10)
+    app.dependency_overrides.clear()
 
 
 @pytest.mark.slow

@@ -284,6 +284,9 @@ class Decision(BaseModel):
 type PageLimit = Annotated[int, Field(ge=1, le=500)]
 
 
+type TransactionLimit = Annotated[int, Field(ge=1, le=500)]
+
+
 type Cursor = Annotated[str, Field(max_length=512, min_length=1)]
 
 
@@ -357,7 +360,16 @@ class TransactionPage(BaseModel):
     next_cursor: NextCursor
     total: Annotated[
         int,
-        Field(description="Exact number of transactions in the window, across all pages.", ge=0),
+        Field(
+            description="Transactions in the window, across all pages. Exact unless `total_is_estimate`.\n",
+            ge=0,
+        ),
+    ]
+    total_is_estimate: Annotated[
+        bool,
+        Field(
+            description="True when the window holds more than 10,000 transactions and `total` is the\nplanner's estimate (at least 10,001) instead of an exact count.\n"
+        ),
     ]
 
 

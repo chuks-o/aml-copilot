@@ -121,8 +121,13 @@ def sync_detailed(
     """List an account's transactions
 
      Transactions where the account is the payer or the payee, oldest first (`ts`
-    ascending, then `id`). Paginated by keyset on `(ts, id)`. `total` is the exact number
-    of transactions in the window, across all pages.
+    ascending, then `id`). Paginated by keyset on `(ts, id)`: every page costs the same,
+    however deep, and rows inserted while paging never cause duplicates or gaps among rows
+    that already existed.
+    - `total` is the number of transactions in the window, across all pages: exact up to
+      10,000, estimated above that (`total_is_estimate: true`).
+    - A cursor is bound to the account and window it was issued for. Reusing it with a
+      different account, `from` or `to` returns 400. `limit` may change between pages.
 
     Args:
         account_id (str): `"<bank>:<account>"`. The bank code has no leading zeros; the account
@@ -169,8 +174,13 @@ def sync(
     """List an account's transactions
 
      Transactions where the account is the payer or the payee, oldest first (`ts`
-    ascending, then `id`). Paginated by keyset on `(ts, id)`. `total` is the exact number
-    of transactions in the window, across all pages.
+    ascending, then `id`). Paginated by keyset on `(ts, id)`: every page costs the same,
+    however deep, and rows inserted while paging never cause duplicates or gaps among rows
+    that already existed.
+    - `total` is the number of transactions in the window, across all pages: exact up to
+      10,000, estimated above that (`total_is_estimate: true`).
+    - A cursor is bound to the account and window it was issued for. Reusing it with a
+      different account, `from` or `to` returns 400. `limit` may change between pages.
 
     Args:
         account_id (str): `"<bank>:<account>"`. The bank code has no leading zeros; the account
@@ -212,8 +222,13 @@ async def asyncio_detailed(
     """List an account's transactions
 
      Transactions where the account is the payer or the payee, oldest first (`ts`
-    ascending, then `id`). Paginated by keyset on `(ts, id)`. `total` is the exact number
-    of transactions in the window, across all pages.
+    ascending, then `id`). Paginated by keyset on `(ts, id)`: every page costs the same,
+    however deep, and rows inserted while paging never cause duplicates or gaps among rows
+    that already existed.
+    - `total` is the number of transactions in the window, across all pages: exact up to
+      10,000, estimated above that (`total_is_estimate: true`).
+    - A cursor is bound to the account and window it was issued for. Reusing it with a
+      different account, `from` or `to` returns 400. `limit` may change between pages.
 
     Args:
         account_id (str): `"<bank>:<account>"`. The bank code has no leading zeros; the account
@@ -258,8 +273,13 @@ async def asyncio(
     """List an account's transactions
 
      Transactions where the account is the payer or the payee, oldest first (`ts`
-    ascending, then `id`). Paginated by keyset on `(ts, id)`. `total` is the exact number
-    of transactions in the window, across all pages.
+    ascending, then `id`). Paginated by keyset on `(ts, id)`: every page costs the same,
+    however deep, and rows inserted while paging never cause duplicates or gaps among rows
+    that already existed.
+    - `total` is the number of transactions in the window, across all pages: exact up to
+      10,000, estimated above that (`total_is_estimate: true`).
+    - A cursor is bound to the account and window it was issued for. Reusing it with a
+      different account, `from` or `to` returns 400. `limit` may change between pages.
 
     Args:
         account_id (str): `"<bank>:<account>"`. The bank code has no leading zeros; the account

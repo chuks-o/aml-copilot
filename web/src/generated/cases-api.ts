@@ -77,8 +77,13 @@ export interface paths {
         /**
          * List an account's transactions
          * @description Transactions where the account is the payer or the payee, oldest first (`ts`
-         *     ascending, then `id`). Paginated by keyset on `(ts, id)`. `total` is the exact number
-         *     of transactions in the window, across all pages.
+         *     ascending, then `id`). Paginated by keyset on `(ts, id)`: every page costs the same,
+         *     however deep, and rows inserted while paging never cause duplicates or gaps among rows
+         *     that already existed.
+         *     - `total` is the number of transactions in the window, across all pages: exact up to
+         *       10,000, estimated above that (`total_is_estimate: true`).
+         *     - A cursor is bound to the account and window it was issued for. Reusing it with a
+         *       different account, `from` or `to` returns 400. `limit` may change between pages.
          */
         get: operations["listAccountTransactions"];
         put?: never;
@@ -400,8 +405,13 @@ export interface components {
         TransactionPage: {
             items: components["schemas"]["Transaction"][];
             next_cursor: components["schemas"]["NextCursor"];
-            /** @description Exact number of transactions in the window, across all pages. */
+            /** @description Transactions in the window, across all pages. Exact unless `total_is_estimate`. */
             total: number;
+            /**
+             * @description True when the window holds more than 10,000 transactions and `total` is the
+             *     planner's estimate (at least 10,001) instead of an exact count.
+             */
+            total_is_estimate: boolean;
         };
         CounterpartyEdge: {
             counterparty_id: components["schemas"]["AccountId"];
@@ -511,6 +521,8 @@ export interface components {
         };
         /** @default 50 */
         PageLimit: number;
+        /** @default 100 */
+        TransactionLimit: number;
         Cursor: string;
         WindowHours: number;
         /** @default 100 */
@@ -792,7 +804,7 @@ export interface operations {
                  */
                 to?: components["schemas"]["Timestamp"];
                 /** @description Page size. */
-                limit?: components["parameters"]["Limit"];
+                limit?: components["schemas"]["TransactionLimit"];
                 /** @description `next_cursor` from the previous page. Opaque; do not build or parse it. */
                 cursor?: components["parameters"]["Cursor"];
             };
