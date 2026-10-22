@@ -36,3 +36,4 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0028](0028-monitoring-rules.md) | Monitoring rules that raise alerts | Accepted (T15); decision 8 amended by 0029, `fan_out` threshold by 0030 |
 | [0029](0029-labels-and-time-split.md) | Alert labels and a frozen time split | Accepted (T16) |
 | [0030](0030-rules-v2.md) | rules-v2: fan_out at 10 counterparties | Accepted (T16 follow-up) |
+| [0031](0031-first-frozen-split.md) | The first frozen split (rules-v2, full replay) | Accepted (T16 follow-up) |
