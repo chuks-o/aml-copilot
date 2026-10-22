@@ -33,5 +33,6 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0025](0025-idempotency.md) | Idempotency-Key: one transaction, wait on the row lock, replay exact bytes | Accepted (T13); decision 9 amended by 0029 |
 | [0026](0026-replayer.md) | Transaction replayer: paced, batched, quarantined, resumable | Accepted (T14); decisions 3, 8 superseded by 0027 |
 | [0027](0027-streaming-replay.md) | Replay streams a sorted copy instead of loading the file | Accepted (T14 follow-up) |
-| [0028](0028-monitoring-rules.md) | Monitoring rules that raise alerts | Accepted (T15); decision 8 amended by 0029 |
+| [0028](0028-monitoring-rules.md) | Monitoring rules that raise alerts | Accepted (T15); decision 8 amended by 0029, `fan_out` threshold by 0030 |
 | [0029](0029-labels-and-time-split.md) | Alert labels and a frozen time split | Accepted (T16) |
+| [0030](0030-rules-v2.md) | rules-v2: fan_out at 10 counterparties | Accepted (T16 follow-up) |

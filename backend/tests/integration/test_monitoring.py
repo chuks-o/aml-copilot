@@ -28,6 +28,7 @@ LATE = ("010", "8000000D4")  # same fan-in, but after ANALYSIS_END
 SENDERS = [("020", f"80000010{n}") for n in range(6)]
 OTHERS = [("030", f"8000002{n:02d}") for n in range(20)]
 ANALYSIS_END = datetime(2022, 9, 10)
+VERSION = load_config().version
 
 
 def _id(account: tuple[str, str]) -> str:
@@ -107,9 +108,9 @@ def test_rules_raise_alerts_through_the_api(stack: Path, scratch_database: Engin
 
     assert report.alert_errors == []
     assert _alerts(scratch_database) == [
-        ("rules-v1:fan_in", _id(FAN_TARGET)),
-        ("rules-v1:new_counterparty_burst", _id(FAN_TARGET)),
-        ("rules-v1:pass_through", _id(PASS_THROUGH)),
+        (f"{VERSION}:fan_in", _id(FAN_TARGET)),
+        (f"{VERSION}:new_counterparty_burst", _id(FAN_TARGET)),
+        (f"{VERSION}:pass_through", _id(PASS_THROUGH)),
     ]
     assert report.alerts_by_rule == {"fan_in": 1, "new_counterparty_burst": 1, "pass_through": 1}
     assert report.alert_lag_p95_ms() is not None
@@ -117,8 +118,9 @@ def test_rules_raise_alerts_through_the_api(stack: Path, scratch_database: Engin
         fan = connection.execute(
             text(
                 "select reason, typology, score, cardinality(transaction_ids) as n from alerts "
-                "where rule_id = 'rules-v1:fan_in'"
-            )
+                "where rule_id = :rule"
+            ),
+            {"rule": f"{VERSION}:fan_in"},
         ).one()
         keys = set(connection.scalars(text("select key from idempotency_keys")))
     assert (fan.reason, fan.typology, fan.n) == (

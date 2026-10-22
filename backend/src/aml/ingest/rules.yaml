@@ -3,9 +3,10 @@
 #
 # Set from the DEV period only (2022-09-01 up to 2022-09-07, the frozen split in
 # data/splits.json, 0029). Never adjust a threshold after looking at the test period
-# (2022-09-07 up to ANALYSIS_END); `make tune-rules` reads dev rows only. Bump `version` whenever a threshold changes: it is part of each alert's
-# model_version, so alerts from different thresholds are never mixed up.
-version: rules-v1
+# (2022-09-07 up to ANALYSIS_END); `make tune-rules` reads dev rows only. Bump `version`
+# whenever a threshold changes: it is part of each alert's model_version, so alerts from
+# different thresholds are never mixed up.
+version: rules-v2  # v2: fan_out 5 -> 10 (0030)
 
 dev_period:
   start: "2022-09-01T00:00:00Z"
@@ -22,7 +23,7 @@ rules:
     min_counterparties: 5
   fan_out:
     window_hours: 24
-    min_counterparties: 5
+    min_counterparties: 10
   pass_through:
     window_hours: 2
     tolerance: 0.05  # |out - in| <= 5% of in, same currency
