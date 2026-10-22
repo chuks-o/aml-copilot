@@ -7,7 +7,7 @@ Rationale: docs/decisions/0025-idempotency.md.
 
 from datetime import timedelta
 from typing import Any, Protocol
-from uuid import UUID
+from uuid import UUID, uuid5
 
 from sqlalchemy import Connection, text
 
@@ -16,9 +16,17 @@ from aml.api.schemas import Alert, AlertCreate, AlertStatus, Error, Typology
 
 _SELECT = """
     SELECT a.id, a.account_id, a.score, a.typology, a.reason, a.transaction_ids,
-           a.rule_id AS model_version, a.status, a.triggered_at AS created_at, c.id AS case_id
+           a.rule_id AS model_version, a.status, a.created_at, c.id AS case_id
     FROM alerts a LEFT JOIN cases c ON c.alert_id = a.id
 """
+
+
+ALERT_IDS = UUID("5b8f6a2e-1c3d-4e7f-9a0b-2c4d6e8f0a1b")  # uuid5 namespace for alert ids
+
+
+def alert_id_for(idempotency_key: str) -> UUID:
+    """The alert id for an Idempotency-Key: deterministic, so a rebuild gives the same ids."""
+    return uuid5(ALERT_IDS, idempotency_key)
 
 
 class AlertsRepository(Protocol):
@@ -64,13 +72,18 @@ class SqlAlertsRepository:
         times = [row.ts for row in cited]
         alert_id = self._db.scalar(
             text(
-                "INSERT INTO alerts (account_id, rule_id, triggered_at, window_start, window_end, "
-                "score, status, reason, transaction_ids, typology, idempotency_key) "
-                "VALUES (:account, :rule, now(), :start, :end, :score, 'OPEN', :reason, :ids, "
-                ":typology, :key) RETURNING id"
+                "INSERT INTO alerts (id, account_id, rule_id, triggered_at, window_start, "
+                "window_end, score, status, reason, transaction_ids, typology, idempotency_key) "
+                "VALUES (:id, :account, :rule, :triggered, :start, :end, :score, 'OPEN', :reason, "
+                ":ids, :typology, :key) RETURNING id"
             ),
             {
+                # Same key, same id: alerts (and the frozen label hash) are reproducible (0029).
+                "id": alert_id_for(idempotency_key),
                 "account": alert.account_id,
+                # Dataset time of the latest evidence, not the wall clock: labels and the time
+                # split are defined on it (0029). Wall-clock time is created_at.
+                "triggered": max(times),
                 "rule": alert.model_version,
                 "start": min(times),
                 "end": max(times) + timedelta(minutes=1),

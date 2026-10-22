@@ -1,0 +1,25 @@
+{
+  "period": {
+    "start": "2022-09-01T00:00:00+00:00",
+    "dev_end": "2022-09-07T00:00:00+00:00",
+    "end": "2022-09-11T00:00:00+00:00",
+    "days": 10,
+    "dev_share": 0.6
+  },
+  "label_window_hours": 72.0,
+  "splits": {
+    "dev": {
+      "alerts": 26588,
+      "positives": 846,
+      "positive_rate": 0.031819,
+      "heldout_cycle": 5
+    },
+    "test": {
+      "alerts": 17445,
+      "positives": 620,
+      "positive_rate": 0.03554,
+      "heldout_cycle": 3
+    }
+  },
+  "sha256": "605e8446275d197018cddf9e08180bdced6939a52eaf88a721afdc555df9ba67"
+}

@@ -168,7 +168,7 @@ source_modules = [
     "aml.worker",
 ]
 forbidden_modules = ["aml.evals"]
-ignore_imports = ["aml.cli -> aml.evals"]
+ignore_imports = ["aml.cli -> aml.evals", "aml.cli -> aml.evals.**"]
 unmatched_ignore_imports_alerting = "none"
 
 [[tool.importlinter.contracts]]

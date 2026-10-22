@@ -27,10 +27,13 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0019](0019-stub-routes-and-contract-tests.md) | Stub routes from generated models, checked by Schemathesis | Accepted (T08); decision 6 opt-in superseded by 0020 |
 | [0020](0020-test-infrastructure.md) | Test infrastructure: tiers, real containers, Jest | Accepted (T09) |
 | [0021](0021-rabbitmq-definitions-after-boot.md) | RabbitMQ topology is imported after boot, not at boot | Accepted (T09) |
-| [0022](0022-schema-v1.md) | Schema v1 (migration 0001) | Accepted (T10) |
+| [0022](0022-schema-v1.md) | Schema v1 (migration 0001) | Accepted (T10); decision 4 amended by 0029 |
 | [0023](0023-seed-and-download.md) | `aml download` and `aml seed`: loading HI-Small with synthetic KYC | Accepted (T11) |
 | [0024](0024-account-pagination.md) | Real account transactions and counterparties: keyset pagination over both sides | Accepted (T12) |
-| [0025](0025-idempotency.md) | Idempotency-Key: one transaction, wait on the row lock, replay exact bytes | Accepted (T13) |
+| [0025](0025-idempotency.md) | Idempotency-Key: one transaction, wait on the row lock, replay exact bytes | Accepted (T13); decision 9 amended by 0029 |
 | [0026](0026-replayer.md) | Transaction replayer: paced, batched, quarantined, resumable | Accepted (T14); decisions 3, 8 superseded by 0027 |
 | [0027](0027-streaming-replay.md) | Replay streams a sorted copy instead of loading the file | Accepted (T14 follow-up) |
-| [0028](0028-monitoring-rules.md) | Monitoring rules that raise alerts | Accepted (T15) |
+| [0028](0028-monitoring-rules.md) | Monitoring rules that raise alerts | Accepted (T15); decision 8 amended by 0029, `fan_out` threshold by 0030 |
+| [0029](0029-labels-and-time-split.md) | Alert labels and a frozen time split | Accepted (T16) |
+| [0030](0030-rules-v2.md) | rules-v2: fan_out at 10 counterparties | Accepted (T16 follow-up) |
+| [0031](0031-first-frozen-split.md) | The first frozen split (rules-v2, full replay) | Accepted (T16 follow-up) |

@@ -168,6 +168,36 @@ def sweep_idempotency_keys() -> None:
 
 
 @app.command()
+def label(
+    check: Annotated[
+        bool, typer.Option(help="Recompute without writing; fail if splits.json no longer matches")
+    ] = False,
+) -> None:
+    """Label alerts, freeze the dev/test time split, write backend/data/splits.json."""
+    from aml.evals import labels
+
+    settings = get_settings()
+    configure_logging("aml-label", settings.log_level)
+    with db.connect() as conn:
+        try:
+            result = labels.check(conn) if check else labels.run(conn)
+        except labels.LabelError as exc:
+            typer.echo(f"aml label: {exc}", err=True)
+            raise typer.Exit(1) from exc
+    period = result["period"]
+    typer.echo(
+        f"{'matches' if check else 'wrote'} {labels.SPLITS_FILE.name}: dev {period['start']} .. "
+        f"{period['dev_end']}, test .. {period['end']}"
+    )
+    for name, split in result["splits"].items():
+        typer.echo(
+            f"  {name:<5} {split['alerts']:>8,} alerts, {split['positives']:>7,} positive "
+            f"({split['positive_rate']}), {split['heldout_cycle']:,} heldout_cycle"
+        )
+    typer.echo(f"  sha256 {result['sha256']}")
+
+
+@app.command()
 def train() -> None:
     """Train the scoring model."""
     _not_implemented("train")
