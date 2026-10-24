@@ -19,6 +19,7 @@ from .decision_action import DecisionAction
 from .direction import Direction
 from .edge_direction import EdgeDirection
 from .entity_type import EntityType
+from .kyc_profile import KycProfile
 from .money import Money
 from .outcome import Outcome
 from .override_decision import OverrideDecision
@@ -51,6 +52,7 @@ __all__ = (
     "Direction",
     "EdgeDirection",
     "EntityType",
+    "KycProfile",
     "Money",
     "Outcome",
     "OverrideDecision",

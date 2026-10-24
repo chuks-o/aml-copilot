@@ -16,7 +16,8 @@ from aml.api.schemas import Alert, AlertCreate, AlertStatus, Error, Typology
 
 _SELECT = """
     SELECT a.id, a.account_id, a.score, a.typology, a.reason, a.transaction_ids,
-           a.rule_id AS model_version, a.status, a.created_at, c.id AS case_id
+           a.rule_id AS model_version, a.status, a.created_at, a.triggered_at,
+           a.window_start, a.window_end, c.id AS case_id
     FROM alerts a LEFT JOIN cases c ON c.alert_id = a.id
 """
 
@@ -116,4 +117,7 @@ def _alert(row: Any) -> Alert:
         status=AlertStatus(row["status"]),
         case_id=row["case_id"],
         created_at=row["created_at"],
+        triggered_at=row["triggered_at"],
+        window_start=row["window_start"],
+        window_end=row["window_end"],
     )

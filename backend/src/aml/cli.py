@@ -197,6 +197,66 @@ def label(
     typer.echo(f"  sha256 {result['sha256']}")
 
 
+@app.command("golden-sample")
+def golden_sample(
+    check: Annotated[
+        bool, typer.Option(help="Redraw without writing; fail if the stored sample differs")
+    ] = False,
+) -> None:
+    """Draw the 80-alert golden sample from dev into backend/data/golden/ (once; seed fixed)."""
+    from aml.evals import golden, labels
+
+    settings = get_settings()
+    configure_logging("aml-golden", settings.log_level)
+    with db.connect() as conn:
+        try:
+            document = golden.check_sample(conn) if check else golden.write_sample(conn)
+        except (golden.GoldenError, labels.LabelError) as exc:
+            typer.echo(f"aml golden-sample: {exc}", err=True)
+            raise typer.Exit(1) from exc
+    typer.echo(
+        f"{'matches' if check else 'wrote'} {golden.SAMPLE_FILE.name}: "
+        f"{len(document['alerts'])} alerts, seed {document['seed']}"
+    )
+    for stratum, n in document["counts"].items():
+        typer.echo(f"  {stratum:<28} {n:>3}")
+
+
+@app.command("golden-label")
+def golden_label(
+    labeller: Annotated[
+        str | None, typer.Option(help="Who is labelling [default: your login name]")
+    ] = None,
+    revise: Annotated[
+        str | None, typer.Option(help="Label this one alert again (the new line wins)")
+    ] = None,
+) -> None:
+    """Label the golden sample in the terminal; resumes where you stopped. Needs `aml api`."""
+    import getpass
+    from uuid import UUID
+
+    from rich.console import Console
+
+    from aml.evals import golden, label_cli
+
+    settings = get_settings()
+    configure_logging("aml-golden", "WARNING")  # keep request logs off the labelling screen
+    console = Console()
+    session = label_cli.Session(
+        source=label_cli.ApiSource(),
+        console=console,
+        read=console.input,
+        labeller=labeller or getpass.getuser(),
+    )
+    try:
+        session.run(revise=UUID(revise) if revise else None)
+    except golden.GoldenError as exc:
+        typer.echo(f"aml golden-label: {exc} (is `aml api` running at {settings.cases_api_url}?)")
+        raise typer.Exit(1) from exc
+    except (KeyboardInterrupt, EOFError):
+        typer.echo("\nStopped; everything saved so far is kept.")
+
+
 @app.command()
 def train() -> None:
     """Train the scoring model."""

@@ -6,18 +6,15 @@ request or are derived from the ``Idempotency-Key`` (the same key gives the same
 replay would).
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from aml.api.schemas import (
-    Account,
-    ActivitySummary,
     Alert,
     AlertCreate,
     AlertStatus,
     Case,
     CaseStatus,
-    EntityType,
     Outcome,
     Recommendation,
     Typology,
@@ -50,23 +47,14 @@ def alert(alert_id: UUID = ALERT_ID, *, create: AlertCreate | None = None) -> Al
     )
     fields.setdefault("typology", None)
     return Alert(
-        **fields, id=alert_id, status=AlertStatus.OPEN, case_id=None, created_at=CREATED_AT
-    )
-
-
-def account(account_id: str) -> Account:
-    bank_id, account_number = account_id.split(":", 1)
-    return Account(
-        id=account_id,
-        bank_id=bank_id,
-        bank_name="Placeholder Bank",
-        account_number=account_number,
-        entity_id="800C998A0",
-        entity_name="Corporation #33520",
-        entity_type=EntityType.CORPORATION,
-        activity=ActivitySummary(
-            first_seen=CREATED_AT, last_seen=UPDATED_AT, sent_count=1, received_count=0
-        ),
+        **fields,
+        id=alert_id,
+        status=AlertStatus.OPEN,
+        case_id=None,
+        created_at=CREATED_AT,
+        triggered_at=CREATED_AT,
+        window_start=CREATED_AT,
+        window_end=CREATED_AT + timedelta(minutes=1),
     )
 
 

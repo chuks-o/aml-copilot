@@ -4,14 +4,18 @@ Every well-formed account id "exists" and has the same 7 transactions, so Schema
 the 200 responses; the window, cursor position and limit are honoured like the SQL version.
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from aml.api.pagination import Position
 from aml.api.repositories.accounts import Count, Window
 from aml.api.schemas import (
+    Account,
+    ActivitySummary,
     CounterpartyEdge,
     Direction,
     EdgeDirection,
+    EntityType,
+    KycProfile,
     Money,
     PaymentFormat,
     Transaction,
@@ -48,6 +52,37 @@ def _in(window: Window, ts: datetime) -> bool:
 class FakeAccountsRepository:
     def exists(self, account_id: str) -> bool:
         return True
+
+    def get(self, account_id: str) -> Account | None:
+        bank_id, account_number = account_id.split(":", 1)
+        rows = _rows(account_id)
+        return Account(
+            id=account_id,
+            bank_id=bank_id,
+            bank_name="Fake Bank #1",
+            account_number=account_number,
+            entity_id="800C998A0",
+            entity_name="Corporation #33520",
+            entity_type=EntityType.CORPORATION,
+            activity=ActivitySummary(
+                first_seen=rows[0].ts,
+                last_seen=rows[-1].ts,
+                sent_count=sum(r.direction is Direction.OUT for r in rows),
+                received_count=sum(r.direction is Direction.IN for r in rows),
+            ),
+            kyc=KycProfile(
+                country="NG",
+                business_type="Construction",
+                expected_monthly_volume_band="1000-9999",
+                onboarded_at=date(2018, 6, 7),
+                synthetic=[
+                    "business_type",
+                    "country",
+                    "expected_monthly_volume_band",
+                    "onboarded_at",
+                ],
+            ),
+        )
 
     def transactions(
         self, account_id: str, window: Window, after: Position | None, limit: int

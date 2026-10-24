@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: aml-copilot Cases API
-  version: 0.3.1
+  version: 0.4.0
   summary: Alerts, accounts, transactions and investigation cases.
   description: |
     The REST API served by `aml.api`. **This file is the source of truth.** The server is
@@ -155,9 +155,10 @@ paths:
       operationId: getAccount
       summary: Get an account's KYC profile
       description: |
-        Contains only what the dataset records about the account holder: bank, entity and
-        entity type, plus an activity summary. There is no risk rating, occupation or expected
-        activity, because the dataset doesn't have them.
+        What the dataset records about the account holder (bank, entity and entity type), an
+        activity summary over all its transactions, and `kyc`: the synthetic KYC fields `aml seed`
+        adds (decision 0023). Those are generated, not observed, and `kyc.synthetic` names them,
+        so present them as synthetic. There is no risk rating.
       parameters:
         - $ref: '#/components/parameters/AccountId'
       responses:
@@ -789,10 +790,25 @@ components:
       allOf:
         - $ref: '#/components/schemas/AlertFields'
         - type: object
-          required: [id, status, typology, case_id, created_at]
+          required:
+            [id, status, typology, case_id, created_at, triggered_at, window_start, window_end]
           properties:
             id:
               $ref: '#/components/schemas/Uuid'
+            triggered_at:
+              description: |
+                Dataset time of the latest cited transaction: when the alert would have fired in
+                production. Labels and the dev/test split are defined on it (decision 0029).
+              allOf:
+                - $ref: '#/components/schemas/Timestamp'
+            window_start:
+              description: The earliest cited transaction.
+              allOf:
+                - $ref: '#/components/schemas/Timestamp'
+            window_end:
+              description: One minute after the latest cited transaction (exclusive).
+              allOf:
+                - $ref: '#/components/schemas/Timestamp'
             status:
               $ref: '#/components/schemas/AlertStatus'
             case_id:
@@ -832,6 +848,7 @@ components:
         - entity_name
         - entity_type
         - activity
+        - kyc
       properties:
         id:
           $ref: '#/components/schemas/AccountId'
@@ -857,6 +874,45 @@ components:
           $ref: '#/components/schemas/EntityType'
         activity:
           $ref: '#/components/schemas/ActivitySummary'
+        kyc:
+          $ref: '#/components/schemas/KycProfile'
+    KycProfile:
+      type: object
+      description: |
+        Synthetic KYC fields (decision 0023): deterministic per account, and about 10% are
+        deliberately inconsistent with the account's activity. Each field is `null` when the
+        profile lacks it.
+      required: [country, business_type, expected_monthly_volume_band, onboarded_at, synthetic]
+      properties:
+        country:
+          description: ISO 3166-1 alpha-2.
+          oneOf:
+            - type: string
+              pattern: '^[A-Z]{2}$'
+              example: NG
+            - type: 'null'
+        business_type:
+          oneOf:
+            - type: string
+              example: Construction
+            - type: 'null'
+        expected_monthly_volume_band:
+          description: The declared monthly volume, as a band of amounts.
+          oneOf:
+            - type: string
+              example: 1000-9999
+            - type: 'null'
+        onboarded_at:
+          oneOf:
+            - type: string
+              format: date
+              example: '2018-06-07'
+            - type: 'null'
+        synthetic:
+          type: array
+          description: The fields above that are generated rather than taken from the dataset.
+          items:
+            type: string
     ActivitySummary:
       type: object
       required: [first_seen, last_seen, sent_count, received_count]

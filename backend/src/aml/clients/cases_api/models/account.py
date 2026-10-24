@@ -13,6 +13,7 @@ from typing import cast
 
 if TYPE_CHECKING:
     from ..models.activity_summary import ActivitySummary
+    from ..models.kyc_profile import KycProfile
 
 
 T = TypeVar("T", bound="Account")
@@ -33,6 +34,9 @@ class Account:
         entity_type (EntityType): Parsed from the dataset's entity name ("Corporation #33520"). `COUNTRY` and `DIRECT`
             are labels the data generator uses without documenting them; they are passed through.
         activity (ActivitySummary):
+        kyc (KycProfile): Synthetic KYC fields (decision 0023): deterministic per account, and about 10% are
+            deliberately inconsistent with the account's activity. Each field is `null` when the
+            profile lacks it.
     """
 
     id: str
@@ -43,10 +47,12 @@ class Account:
     entity_name: str
     entity_type: EntityType
     activity: ActivitySummary
+    kyc: KycProfile
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.activity_summary import ActivitySummary  # noqa: PLC0415
+        from ..models.kyc_profile import KycProfile  # noqa: PLC0415
 
         id = self.id
 
@@ -64,6 +70,8 @@ class Account:
 
         activity = self.activity.to_dict()
 
+        kyc = self.kyc.to_dict()
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -76,6 +84,7 @@ class Account:
                 "entity_name": entity_name,
                 "entity_type": entity_type,
                 "activity": activity,
+                "kyc": kyc,
             }
         )
 
@@ -84,6 +93,7 @@ class Account:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.activity_summary import ActivitySummary  # noqa: PLC0415
+        from ..models.kyc_profile import KycProfile  # noqa: PLC0415
 
         d = dict(src_dict)
         id = d.pop("id")
@@ -102,6 +112,8 @@ class Account:
 
         activity = ActivitySummary.from_dict(d.pop("activity"))
 
+        kyc = KycProfile.from_dict(d.pop("kyc"))
+
         account = cls(
             id=id,
             bank_id=bank_id,
@@ -111,6 +123,7 @@ class Account:
             entity_name=entity_name,
             entity_type=entity_type,
             activity=activity,
+            kyc=kyc,
         )
 
         account.additional_properties = d

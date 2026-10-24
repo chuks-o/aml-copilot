@@ -32,6 +32,9 @@ class Alert:
         model_version (str):  Example: gbm-2026-10-01.
         typology (None | Typology): The model's guess at the pattern, if it makes one.
         id (UUID):  Example: 0b6f1c1e-5d2a-4a8e-9a43-7c1d2e3f4a5b.
+        triggered_at (datetime.datetime):  Example: 2022-09-01T00:20:00Z.
+        window_start (datetime.datetime):  Example: 2022-09-01T00:20:00Z.
+        window_end (datetime.datetime):  Example: 2022-09-01T00:20:00Z.
         status (AlertStatus): `OPEN` until grouped into a case (`IN_CASE`) or dismissed (`DISMISSED`).
         case_id (None | UUID): The case this alert belongs to, once `IN_CASE`.
         created_at (datetime.datetime):  Example: 2022-09-01T00:20:00Z.
@@ -44,6 +47,9 @@ class Alert:
     model_version: str
     typology: None | Typology
     id: UUID
+    triggered_at: datetime.datetime
+    window_start: datetime.datetime
+    window_end: datetime.datetime
     status: AlertStatus
     case_id: None | UUID
     created_at: datetime.datetime
@@ -68,6 +74,12 @@ class Alert:
 
         id = str(self.id)
 
+        triggered_at = self.triggered_at.isoformat()
+
+        window_start = self.window_start.isoformat()
+
+        window_end = self.window_end.isoformat()
+
         status = self.status.value
 
         case_id: None | str
@@ -89,6 +101,9 @@ class Alert:
                 "model_version": model_version,
                 "typology": typology,
                 "id": id,
+                "triggered_at": triggered_at,
+                "window_start": window_start,
+                "window_end": window_end,
                 "status": status,
                 "case_id": case_id,
                 "created_at": created_at,
@@ -127,6 +142,12 @@ class Alert:
 
         id = UUID(d.pop("id"))
 
+        triggered_at = datetime.datetime.fromisoformat(d.pop("triggered_at"))
+
+        window_start = datetime.datetime.fromisoformat(d.pop("window_start"))
+
+        window_end = datetime.datetime.fromisoformat(d.pop("window_end"))
+
         status = AlertStatus(d.pop("status"))
 
         def _parse_case_id(data: object) -> None | UUID:
@@ -154,6 +175,9 @@ class Alert:
             model_version=model_version,
             typology=typology,
             id=id,
+            triggered_at=triggered_at,
+            window_start=window_start,
+            window_end=window_end,
             status=status,
             case_id=case_id,
             created_at=created_at,
