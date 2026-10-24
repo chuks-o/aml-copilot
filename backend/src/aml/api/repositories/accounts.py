@@ -1,4 +1,4 @@
-"""Account reads: keyset-paged transactions, bounded counts, counterparty edges.
+"""Account reads: the profile, keyset-paged transactions, bounded counts, counterparty edges.
 
 An account appears on both sides of its transactions, so every query is the UNION ALL of
 two index-ordered scans, ``from_account = A`` and ``to_account = A AND from_account <> A``
@@ -18,9 +18,13 @@ from sqlalchemy import Connection, text
 
 from aml.api.pagination import Position
 from aml.api.schemas import (
+    Account,
+    ActivitySummary,
     CounterpartyEdge,
     Direction,
     EdgeDirection,
+    EntityType,
+    KycProfile,
     Money,
     PaymentFormat,
     Transaction,
@@ -48,8 +52,13 @@ class Count:
     is_estimate: bool
 
 
+KYC_FIELDS = ("country", "business_type", "expected_monthly_volume_band", "onboarded_at")
+
+
 class AccountsRepository(Protocol):
     def exists(self, account_id: str) -> bool: ...
+
+    def get(self, account_id: str) -> Account | None: ...
 
     def transactions(
         self, account_id: str, window: Window, after: Position | None, limit: int
@@ -117,6 +126,23 @@ class SqlAccountsRepository:
         found = self._db.scalar(text("SELECT 1 FROM accounts WHERE id = :id"), {"id": account_id})
         return found is not None
 
+    def get(self, account_id: str) -> Account | None:
+        row = self._db.execute(
+            text(
+                "SELECT id, bank_id, account_number, entity_type, kyc_profile, "
+                # Each side reads its own (side, ts, id) index; self-transfers count on both.
+                "(SELECT min(ts) FROM transactions WHERE from_account = a.id) AS first_sent, "
+                "(SELECT max(ts) FROM transactions WHERE from_account = a.id) AS last_sent, "
+                "(SELECT min(ts) FROM transactions WHERE to_account = a.id) AS first_received, "
+                "(SELECT max(ts) FROM transactions WHERE to_account = a.id) AS last_received, "
+                "(SELECT count(*) FROM transactions WHERE from_account = a.id) AS sent, "
+                "(SELECT count(*) FROM transactions WHERE to_account = a.id) AS received "
+                "FROM accounts a WHERE id = :id"
+            ),
+            {"id": account_id},
+        ).first()
+        return _account(row._mapping) if row is not None else None
+
     def transactions(
         self, account_id: str, window: Window, after: Position | None, limit: int
     ) -> list[Transaction]:
@@ -175,6 +201,36 @@ class SqlAccountsRepository:
             for row in rows
         ]
         return edges, (rows[0].total_edges if rows else 0)
+
+
+def _account(row: Any) -> Account:
+    profile = row["kyc_profile"]
+    firsts = [t for t in (row["first_sent"], row["first_received"]) if t is not None]
+    lasts = [t for t in (row["last_sent"], row["last_received"]) if t is not None]
+    return Account(
+        id=row["id"],
+        bank_id=row["bank_id"],
+        bank_name=profile.get("bank_name", ""),
+        account_number=row["account_number"],
+        entity_id=profile.get("entity_id", ""),
+        entity_name=profile.get("entity_name", ""),
+        entity_type=EntityType(row["entity_type"]),
+        activity=ActivitySummary(
+            first_seen=min(firsts, default=None),
+            last_seen=max(lasts, default=None),
+            sent_count=row["sent"],
+            received_count=row["received"],
+        ),
+        kyc=kyc_profile(profile),
+    )
+
+
+def kyc_profile(profile: dict[str, Any]) -> KycProfile:
+    """The synthetic fields of ``accounts.kyc_profile`` (0023); ``kyc_seed`` stays internal."""
+    return KycProfile(
+        **{field: profile.get(field) for field in KYC_FIELDS},
+        synthetic=list(profile.get("synthetic", [])),
+    )
 
 
 def _transaction(row: Any, account_id: str) -> Transaction:

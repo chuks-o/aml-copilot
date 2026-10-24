@@ -6,7 +6,7 @@ locking or expiry, which tests/integration covers.
 
 from collections.abc import Iterator
 from contextlib import AbstractContextManager, contextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -41,12 +41,17 @@ class MemoryAlertsRepository:
         self.alerts: dict[UUID, Alert] = {}
 
     def create(self, alert: AlertCreate, idempotency_key: str) -> Alert:
+        now = datetime.now(UTC)
         created = Alert(
             **alert.model_dump(),
             id=uuid4(),
             status=AlertStatus.OPEN,
             case_id=None,
-            created_at=datetime.now(UTC),
+            created_at=now,
+            # No transactions here: the window stands in for [earliest, latest + 1 min).
+            triggered_at=now,
+            window_start=now,
+            window_end=now + timedelta(minutes=1),
         )
         self.alerts[created.id] = created
         return created

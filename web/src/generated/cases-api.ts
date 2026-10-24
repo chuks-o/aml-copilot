@@ -57,9 +57,10 @@ export interface paths {
         };
         /**
          * Get an account's KYC profile
-         * @description Contains only what the dataset records about the account holder: bank, entity and
-         *     entity type, plus an activity summary. There is no risk rating, occupation or expected
-         *     activity, because the dataset doesn't have them.
+         * @description What the dataset records about the account holder (bank, entity and entity type), an
+         *     activity summary over all its transactions, and `kyc`: the synthetic KYC fields `aml seed`
+         *     adds (decision 0023). Those are generated, not observed, and `kyc.synthetic` names them,
+         *     so present them as synthetic. There is no risk rating.
          */
         get: operations["getAccount"];
         put?: never;
@@ -342,6 +343,15 @@ export interface components {
         };
         Alert: components["schemas"]["AlertFields"] & {
             id: components["schemas"]["Uuid"];
+            /**
+             * @description Dataset time of the latest cited transaction: when the alert would have fired in
+             *     production. Labels and the dev/test split are defined on it (decision 0029).
+             */
+            triggered_at: components["schemas"]["Timestamp"];
+            /** @description The earliest cited transaction. */
+            window_start: components["schemas"]["Timestamp"];
+            /** @description One minute after the latest cited transaction (exclusive). */
+            window_end: components["schemas"]["Timestamp"];
             status: components["schemas"]["AlertStatus"];
             /** @description The case this alert belongs to, once `IN_CASE`. */
             case_id: components["schemas"]["Uuid"] | null;
@@ -375,6 +385,22 @@ export interface components {
             entity_name: string;
             entity_type: components["schemas"]["EntityType"];
             activity: components["schemas"]["ActivitySummary"];
+            kyc: components["schemas"]["KycProfile"];
+        };
+        /**
+         * @description Synthetic KYC fields (decision 0023): deterministic per account, and about 10% are
+         *     deliberately inconsistent with the account's activity. Each field is `null` when the
+         *     profile lacks it.
+         */
+        KycProfile: {
+            /** @description ISO 3166-1 alpha-2. */
+            country: string | null;
+            business_type: string | null;
+            /** @description The declared monthly volume, as a band of amounts. */
+            expected_monthly_volume_band: string | null;
+            onboarded_at: string | null;
+            /** @description The fields above that are generated rather than taken from the dataset. */
+            synthetic: string[];
         };
         ActivitySummary: {
             /** @description First transaction, or `null` if the account has none. */

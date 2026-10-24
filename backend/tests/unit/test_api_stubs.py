@@ -1,9 +1,13 @@
 """Stub behaviour the contract test only reaches by chance: success paths and state rules."""
 
+from collections.abc import Iterator
+
 import pytest
 from fastapi.testclient import TestClient
 
 from aml.api.app import app
+from aml.api.routes.accounts import accounts_repository
+from tests.contract.fake_accounts import FakeAccountsRepository
 
 # The write routes reach the database through the unit of work; here it is in memory.
 pytestmark = pytest.mark.usefixtures("memory_writes")
@@ -84,6 +88,15 @@ def test_validation_errors_are_problem_json_with_pointers() -> None:
     ]
 
 
+@pytest.fixture
+def fake_accounts() -> Iterator[None]:
+    """FastAPI opens the repository's connection before it validates the path."""
+    app.dependency_overrides[accounts_repository] = FakeAccountsRepository
+    yield
+    del app.dependency_overrides[accounts_repository]
+
+
+@pytest.mark.usefixtures("fake_accounts")
 def test_bad_path_ids_are_400_with_an_encoded_instance() -> None:
     r = client.get("/accounts/%C2%84")
 

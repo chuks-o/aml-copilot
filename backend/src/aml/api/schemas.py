@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
@@ -146,6 +147,16 @@ class AlertFields(BaseModel):
 
 class Alert(AlertFields):
     id: Uuid
+    triggered_at: Annotated[
+        Timestamp,
+        Field(
+            description="Dataset time of the latest cited transaction: when the alert would have fired in\nproduction. Labels and the dev/test split are defined on it (decision 0029).\n"
+        ),
+    ]
+    window_start: Annotated[Timestamp, Field(description="The earliest cited transaction.")]
+    window_end: Annotated[
+        Timestamp, Field(description="One minute after the latest cited transaction (exclusive).")
+    ]
     status: AlertStatus
     case_id: Annotated[
         Uuid | None, Field(description="The case this alert belongs to, once `IN_CASE`.")
@@ -163,6 +174,26 @@ class EntityType(StrEnum):
     INDIVIDUAL = "INDIVIDUAL"
     COUNTRY = "COUNTRY"
     DIRECT = "DIRECT"
+
+
+type Country = Annotated[
+    str, Field(description="ISO 3166-1 alpha-2.", examples=["NG"], pattern="^[A-Z]{2}$")
+]
+
+
+class KycProfile(BaseModel):
+    country: Annotated[Country | None, Field(description="ISO 3166-1 alpha-2.")]
+    business_type: str | None
+    expected_monthly_volume_band: Annotated[
+        str | None, Field(description="The declared monthly volume, as a band of amounts.")
+    ]
+    onboarded_at: date | None
+    synthetic: Annotated[
+        list[str],
+        Field(
+            description="The fields above that are generated rather than taken from the dataset."
+        ),
+    ]
 
 
 class ActivitySummary(BaseModel):
@@ -353,6 +384,7 @@ class Account(BaseModel):
     entity_name: Annotated[str, Field(examples=["Corporation #33520"])]
     entity_type: EntityType
     activity: ActivitySummary
+    kyc: KycProfile
 
 
 class TransactionPage(BaseModel):

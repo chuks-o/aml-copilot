@@ -1,0 +1,504 @@
+{
+  "version": "golden_v1",
+  "seed": 17,
+  "splits_sha256": "605e8446275d197018cddf9e08180bdced6939a52eaf88a721afdc555df9ba67",
+  "quotas": {
+    "positive_listed": 32,
+    "positive_unlisted_non_ach": 8,
+    "negative_hard": 20,
+    "negative_ordinary": 20
+  },
+  "counts": {
+    "negative_high_score": 8,
+    "negative_near_miss": 8,
+    "negative_ordinary": 20,
+    "negative_t01": 4,
+    "positive_listed": 32,
+    "positive_unlisted_non_ach": 8
+  },
+  "t01_without_dev_alerts": [
+    "4726:808FAF7C0"
+  ],
+  "alerts": [
+    {
+      "alert_id": "30ab008d-b3bd-5574-8a01-8daad483bb2c",
+      "account_id": "220271:80A885E10",
+      "stratum": "positive_listed",
+      "group": "STACK"
+    },
+    {
+      "alert_id": "b6e8d184-d592-52cb-8543-43e011160f7e",
+      "account_id": "26174:809CC4600",
+      "stratum": "positive_listed",
+      "group": "FAN_IN"
+    },
+    {
+      "alert_id": "e390297c-a5e6-5c3a-873d-f7dac5f70d21",
+      "account_id": "1362:8001ECD70",
+      "stratum": "positive_listed",
+      "group": "FAN_IN"
+    },
+    {
+      "alert_id": "8d74a610-45ab-5314-a67f-7baa7a10b06d",
+      "account_id": "1853:8052D7D30",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:pass_through"
+    },
+    {
+      "alert_id": "7a57e354-4962-5490-8dd3-9273f61fc4a4",
+      "account_id": "20:80006A5E0",
+      "stratum": "positive_listed",
+      "group": "FAN_OUT"
+    },
+    {
+      "alert_id": "25b40dc2-1e48-5599-932d-cd6065baa118",
+      "account_id": "214615:8075AC7C0",
+      "stratum": "positive_listed",
+      "group": "GATHER_SCATTER"
+    },
+    {
+      "alert_id": "2971981c-ce1b-55f7-a0d7-00d38793c922",
+      "account_id": "214322:80D1AF160",
+      "stratum": "positive_unlisted_non_ach",
+      "group": ""
+    },
+    {
+      "alert_id": "ed3df548-65f6-55e3-a625-bef7495f80e8",
+      "account_id": "24144:801BAA710",
+      "stratum": "negative_high_score",
+      "group": ""
+    },
+    {
+      "alert_id": "b9b52e02-0f4e-52f0-a4c5-76648963ee92",
+      "account_id": "15231:80266F880",
+      "stratum": "positive_listed",
+      "group": "CYCLE"
+    },
+    {
+      "alert_id": "aece1de1-8763-53f1-86fe-654c72055971",
+      "account_id": "234347:80DAA12D0",
+      "stratum": "negative_near_miss",
+      "group": ""
+    },
+    {
+      "alert_id": "150785f1-8184-5391-9278-7ed1745296d5",
+      "account_id": "21611:8051A3FA0",
+      "stratum": "negative_t01",
+      "group": "21611:8051A3FA0"
+    },
+    {
+      "alert_id": "2ccae1ba-57d7-54e5-9d1a-9821c3714f84",
+      "account_id": "8074:80BA0C490",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:fan_in"
+    },
+    {
+      "alert_id": "aaec8eea-878e-545a-afbf-56eef6b5c862",
+      "account_id": "27684:80B635080",
+      "stratum": "negative_near_miss",
+      "group": ""
+    },
+    {
+      "alert_id": "93d7e1e8-5e26-5218-9cfd-823dba9b39ca",
+      "account_id": "701:8013F0350",
+      "stratum": "positive_listed",
+      "group": "SCATTER_GATHER"
+    },
+    {
+      "alert_id": "13771485-f6e5-5e1e-ae10-55be79b7e98a",
+      "account_id": "110603:8072FD1D0",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:structuring"
+    },
+    {
+      "alert_id": "3052d28c-bd46-58c2-821b-a8f96287ff74",
+      "account_id": "222:811D80C30",
+      "stratum": "positive_listed",
+      "group": "GATHER_SCATTER"
+    },
+    {
+      "alert_id": "18ff861d-e631-53cc-a2f2-d203badbd4cb",
+      "account_id": "13037:807622350",
+      "stratum": "negative_high_score",
+      "group": ""
+    },
+    {
+      "alert_id": "874dc296-b6bb-579c-8923-5844ad054aa6",
+      "account_id": "18405:806FB5D60",
+      "stratum": "positive_unlisted_non_ach",
+      "group": ""
+    },
+    {
+      "alert_id": "a1dab7f3-2f15-55d5-8f64-0425d1465cae",
+      "account_id": "232304:80C2D6A60",
+      "stratum": "positive_unlisted_non_ach",
+      "group": ""
+    },
+    {
+      "alert_id": "83975e3a-cdff-5e9d-acaa-e42156087ce1",
+      "account_id": "254355:813F469D1",
+      "stratum": "positive_unlisted_non_ach",
+      "group": ""
+    },
+    {
+      "alert_id": "c90bbca2-80e1-5a9a-8f3c-3ad97bfb78fd",
+      "account_id": "20:8001B0770",
+      "stratum": "positive_listed",
+      "group": "FAN_OUT"
+    },
+    {
+      "alert_id": "6c9eabc6-b752-56d3-ae8f-5b7ca51ba89b",
+      "account_id": "10:8001A6140",
+      "stratum": "positive_listed",
+      "group": "RANDOM"
+    },
+    {
+      "alert_id": "811cf709-eef0-5dec-a225-c71d1c3e2273",
+      "account_id": "12561:801597F20",
+      "stratum": "negative_high_score",
+      "group": ""
+    },
+    {
+      "alert_id": "43c94d34-134d-52d7-b780-9f56f1bb93c0",
+      "account_id": "3:8007C82A0",
+      "stratum": "positive_listed",
+      "group": "STACK"
+    },
+    {
+      "alert_id": "ab978d91-c39d-54e5-983e-98b26dc668af",
+      "account_id": "4503:802134DE0",
+      "stratum": "positive_unlisted_non_ach",
+      "group": ""
+    },
+    {
+      "alert_id": "fa1c39b5-8f2f-5bbe-b236-bdceff119f5d",
+      "account_id": "8771:80C6F48A0",
+      "stratum": "positive_listed",
+      "group": "GATHER_SCATTER"
+    },
+    {
+      "alert_id": "8fae31fd-1c5e-5413-9720-a3fb00052365",
+      "account_id": "10642:81002C260",
+      "stratum": "negative_near_miss",
+      "group": ""
+    },
+    {
+      "alert_id": "7a7f741a-08a2-5bc5-ab67-ec65a175b720",
+      "account_id": "23:801DAC980",
+      "stratum": "positive_unlisted_non_ach",
+      "group": ""
+    },
+    {
+      "alert_id": "2439e68d-b22c-5534-825d-838f5587b853",
+      "account_id": "14277:80B847A90",
+      "stratum": "negative_t01",
+      "group": "14277:80B847A90"
+    },
+    {
+      "alert_id": "4dbe294d-8e7b-5c85-8d47-1ba95059bef4",
+      "account_id": "18200:8035A4F50",
+      "stratum": "positive_listed",
+      "group": "BIPARTITE"
+    },
+    {
+      "alert_id": "0239330e-e07e-5446-b5c4-f91abf6563d0",
+      "account_id": "6276:80DF3A960",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:new_counterparty_burst"
+    },
+    {
+      "alert_id": "c4dae7c3-eb35-5448-b3fd-52c14256eff5",
+      "account_id": "1:8004BA030",
+      "stratum": "positive_listed",
+      "group": "RANDOM"
+    },
+    {
+      "alert_id": "10256907-86c4-5cab-8c9b-247e825d97bb",
+      "account_id": "10:8009CF210",
+      "stratum": "positive_listed",
+      "group": "STACK"
+    },
+    {
+      "alert_id": "63301311-675f-50ec-ada1-70c842595f61",
+      "account_id": "43460:8109A9780",
+      "stratum": "negative_near_miss",
+      "group": ""
+    },
+    {
+      "alert_id": "e774011e-aff4-5263-8e18-a4d87bea1525",
+      "account_id": "12:8010D4440",
+      "stratum": "positive_listed",
+      "group": "GATHER_SCATTER"
+    },
+    {
+      "alert_id": "16be0d49-1852-5962-b05d-252901c049ff",
+      "account_id": "1467:80A4E6470",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:pass_through"
+    },
+    {
+      "alert_id": "5fcf9d91-fdb6-56d0-917b-4f5f27bc0311",
+      "account_id": "11:800AEE940",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:new_counterparty_burst"
+    },
+    {
+      "alert_id": "07be10ec-8124-50ee-b724-ec702e006c8e",
+      "account_id": "11852:8015AC8C0",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:new_counterparty_burst"
+    },
+    {
+      "alert_id": "35d69935-1055-50c3-8021-77dcbb53b219",
+      "account_id": "3:801AABAB0",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:new_counterparty_burst"
+    },
+    {
+      "alert_id": "0e19a234-02f9-5aae-b95e-695f96912e2c",
+      "account_id": "513:801947FF0",
+      "stratum": "positive_listed",
+      "group": "BIPARTITE"
+    },
+    {
+      "alert_id": "1061b0ef-5d03-5422-9f80-d2c3069d6800",
+      "account_id": "3420:806A42680",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:fan_in"
+    },
+    {
+      "alert_id": "64730d63-0260-506a-8a24-875580d6ff42",
+      "account_id": "13516:8014FA230",
+      "stratum": "positive_listed",
+      "group": "BIPARTITE"
+    },
+    {
+      "alert_id": "8b4cdcb1-6ced-59e7-bf9d-23b651b390d0",
+      "account_id": "213952:808338D40",
+      "stratum": "positive_listed",
+      "group": "SCATTER_GATHER"
+    },
+    {
+      "alert_id": "7041d8db-56ba-5892-9531-bce49466b19e",
+      "account_id": "11:8001D8590",
+      "stratum": "positive_listed",
+      "group": "FAN_OUT"
+    },
+    {
+      "alert_id": "f4c56cc5-f121-5710-8825-8e9fd0158473",
+      "account_id": "22:8001693A0",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:pass_through"
+    },
+    {
+      "alert_id": "340b7568-5248-5645-bf11-f589573a7b2b",
+      "account_id": "1420:80437D050",
+      "stratum": "positive_listed",
+      "group": "GATHER_SCATTER"
+    },
+    {
+      "alert_id": "bd793f29-7178-5ab1-a675-c64f8e5d2e60",
+      "account_id": "10:8001BB380",
+      "stratum": "positive_listed",
+      "group": "FAN_OUT"
+    },
+    {
+      "alert_id": "026c5f22-6352-55d0-b641-de807487569d",
+      "account_id": "1:8001093C0",
+      "stratum": "negative_near_miss",
+      "group": ""
+    },
+    {
+      "alert_id": "bfc08958-317a-5268-a979-e0e9ebbe178c",
+      "account_id": "4:8036C6F50",
+      "stratum": "negative_high_score",
+      "group": ""
+    },
+    {
+      "alert_id": "56b9aece-18f1-5640-87fd-b09dd3bd5f91",
+      "account_id": "211:807661E30",
+      "stratum": "negative_t01",
+      "group": "211:807661E30"
+    },
+    {
+      "alert_id": "f9bce08f-759a-52e4-92b9-0ccfdf543914",
+      "account_id": "21174:8075F2730",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:new_counterparty_burst"
+    },
+    {
+      "alert_id": "ae56905c-2963-5c83-afd2-32669b601ecd",
+      "account_id": "110:80D841700",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:fan_in"
+    },
+    {
+      "alert_id": "bd973fc7-673c-5768-ae43-f15c6eae3f77",
+      "account_id": "20:800284580",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:fan_out"
+    },
+    {
+      "alert_id": "54c5a812-ae0a-5f8f-9256-b11a7739ab1b",
+      "account_id": "10:800119810",
+      "stratum": "positive_listed",
+      "group": "RANDOM"
+    },
+    {
+      "alert_id": "2b4b5817-d3aa-52b1-91b7-0baf32dc3e46",
+      "account_id": "12004:800E47B20",
+      "stratum": "positive_unlisted_non_ach",
+      "group": ""
+    },
+    {
+      "alert_id": "d02baf52-132c-5f3a-a26f-05e691ced357",
+      "account_id": "1547:8028F2650",
+      "stratum": "positive_listed",
+      "group": "FAN_IN"
+    },
+    {
+      "alert_id": "68312dc3-9849-59b7-bada-03c176fa08e9",
+      "account_id": "7195:811684E20",
+      "stratum": "negative_high_score",
+      "group": ""
+    },
+    {
+      "alert_id": "68c80f17-f324-5041-83f3-8161923e5820",
+      "account_id": "16649:80614A030",
+      "stratum": "positive_listed",
+      "group": "SCATTER_GATHER"
+    },
+    {
+      "alert_id": "33121c66-4220-5553-9dda-d335109de954",
+      "account_id": "249176:811EF0F00",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:fan_in"
+    },
+    {
+      "alert_id": "301859ce-56b1-51f1-a66c-1aa468e1a410",
+      "account_id": "43735:8113540E0",
+      "stratum": "negative_high_score",
+      "group": ""
+    },
+    {
+      "alert_id": "ba0a4243-ac2d-5858-8a60-c7295d52a22e",
+      "account_id": "21258:8095E99A0",
+      "stratum": "negative_high_score",
+      "group": ""
+    },
+    {
+      "alert_id": "d6a73717-9a6e-5d06-89fc-7e5a6fd5ebb1",
+      "account_id": "23691:801F045A0",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:pass_through"
+    },
+    {
+      "alert_id": "6f3f2cfd-c500-5993-bca7-a4a50be9efe1",
+      "account_id": "11405:800EE6B70",
+      "stratum": "positive_listed",
+      "group": "SCATTER_GATHER"
+    },
+    {
+      "alert_id": "a34d8048-fda0-5709-910b-5241a05b96b0",
+      "account_id": "1490:800289800",
+      "stratum": "positive_listed",
+      "group": "RANDOM"
+    },
+    {
+      "alert_id": "0945eb38-e035-58ee-ace1-70dbb2a6b741",
+      "account_id": "12:80010F6E0",
+      "stratum": "negative_t01",
+      "group": "12:80010F6E0"
+    },
+    {
+      "alert_id": "4fcc1a9c-7b19-5090-b773-845a3e7b586e",
+      "account_id": "148350:8123B4D50",
+      "stratum": "negative_near_miss",
+      "group": ""
+    },
+    {
+      "alert_id": "39940710-bf50-5781-a4fb-04166f731e48",
+      "account_id": "136823:80FEE2530",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:structuring"
+    },
+    {
+      "alert_id": "0848298b-5ff7-5de3-bc6f-0045b87efcd7",
+      "account_id": "14549:80E107060",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:new_counterparty_burst"
+    },
+    {
+      "alert_id": "6ef4d0ce-3bc6-5966-9b5c-32ff00ec2868",
+      "account_id": "11:8021309A0",
+      "stratum": "positive_listed",
+      "group": "BIPARTITE"
+    },
+    {
+      "alert_id": "fa6036ce-02dd-5787-a909-2226b5651173",
+      "account_id": "38478:80EA2DC40",
+      "stratum": "negative_high_score",
+      "group": ""
+    },
+    {
+      "alert_id": "af831825-4363-53a6-8e58-ac0a00b8d9d5",
+      "account_id": "13078:8053B01E0",
+      "stratum": "positive_listed",
+      "group": "SCATTER_GATHER"
+    },
+    {
+      "alert_id": "ca8212cd-73af-525c-b3f5-7e6460374ad7",
+      "account_id": "18549:8072C03E0",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:fan_in"
+    },
+    {
+      "alert_id": "c8034d15-4780-5386-8e3f-abbec1fedbf9",
+      "account_id": "215687:814192C60",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:fan_in"
+    },
+    {
+      "alert_id": "2cac240f-323c-5949-9b9d-f23e4b91278b",
+      "account_id": "2385:8034D2BB0",
+      "stratum": "negative_near_miss",
+      "group": ""
+    },
+    {
+      "alert_id": "2a6f0d42-8f4e-5186-bb08-3a52667bad10",
+      "account_id": "13858:801FE25A0",
+      "stratum": "positive_listed",
+      "group": "STACK"
+    },
+    {
+      "alert_id": "3328b34a-3e0c-5bfb-a096-26e9eb8a00e2",
+      "account_id": "45612:811EC8580",
+      "stratum": "negative_ordinary",
+      "group": "rules-v2:new_counterparty_burst"
+    },
+    {
+      "alert_id": "c2a41767-2869-54e7-a5d4-1696fbf66b0d",
+      "account_id": "245668:81132AE90",
+      "stratum": "negative_near_miss",
+      "group": ""
+    },
+    {
+      "alert_id": "06d336bc-fe4e-591d-855c-47ec9b04bb68",
+      "account_id": "20:80BC62F10",
+      "stratum": "positive_listed",
+      "group": "CYCLE"
+    },
+    {
+      "alert_id": "437817d0-1b32-56a5-a51c-c03e3b1ad4b4",
+      "account_id": "908:800A28DE0",
+      "stratum": "positive_unlisted_non_ach",
+      "group": ""
+    },
+    {
+      "alert_id": "e8d8ef0f-b854-5e57-b298-9ea1f2b9e00a",
+      "account_id": "21918:8053168D0",
+      "stratum": "positive_listed",
+      "group": "FAN_IN"
+    }
+  ]
+}

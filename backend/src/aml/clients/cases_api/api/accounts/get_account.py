@@ -84,9 +84,10 @@ def sync_detailed(
 ) -> Response[Account | Problem]:
     """Get an account's KYC profile
 
-     Contains only what the dataset records about the account holder: bank, entity and
-    entity type, plus an activity summary. There is no risk rating, occupation or expected
-    activity, because the dataset doesn't have them.
+     What the dataset records about the account holder (bank, entity and entity type), an
+    activity summary over all its transactions, and `kyc`: the synthetic KYC fields `aml seed`
+    adds (decision 0023). Those are generated, not observed, and `kyc.synthetic` names them,
+    so present them as synthetic. There is no risk rating.
 
     Args:
         account_id (str): `"<bank>:<account>"`. The bank code has no leading zeros; the account
@@ -120,9 +121,10 @@ def sync(
 ) -> Account | Problem | None:
     """Get an account's KYC profile
 
-     Contains only what the dataset records about the account holder: bank, entity and
-    entity type, plus an activity summary. There is no risk rating, occupation or expected
-    activity, because the dataset doesn't have them.
+     What the dataset records about the account holder (bank, entity and entity type), an
+    activity summary over all its transactions, and `kyc`: the synthetic KYC fields `aml seed`
+    adds (decision 0023). Those are generated, not observed, and `kyc.synthetic` names them,
+    so present them as synthetic. There is no risk rating.
 
     Args:
         account_id (str): `"<bank>:<account>"`. The bank code has no leading zeros; the account
@@ -151,9 +153,10 @@ async def asyncio_detailed(
 ) -> Response[Account | Problem]:
     """Get an account's KYC profile
 
-     Contains only what the dataset records about the account holder: bank, entity and
-    entity type, plus an activity summary. There is no risk rating, occupation or expected
-    activity, because the dataset doesn't have them.
+     What the dataset records about the account holder (bank, entity and entity type), an
+    activity summary over all its transactions, and `kyc`: the synthetic KYC fields `aml seed`
+    adds (decision 0023). Those are generated, not observed, and `kyc.synthetic` names them,
+    so present them as synthetic. There is no risk rating.
 
     Args:
         account_id (str): `"<bank>:<account>"`. The bank code has no leading zeros; the account
@@ -185,9 +188,10 @@ async def asyncio(
 ) -> Account | Problem | None:
     """Get an account's KYC profile
 
-     Contains only what the dataset records about the account holder: bank, entity and
-    entity type, plus an activity summary. There is no risk rating, occupation or expected
-    activity, because the dataset doesn't have them.
+     What the dataset records about the account holder (bank, entity and entity type), an
+    activity summary over all its transactions, and `kyc`: the synthetic KYC fields `aml seed`
+    adds (decision 0023). Those are generated, not observed, and `kyc.synthetic` names them,
+    so present them as synthetic. There is no risk rating.
 
     Args:
         account_id (str): `"<bank>:<account>"`. The bank code has no leading zeros; the account

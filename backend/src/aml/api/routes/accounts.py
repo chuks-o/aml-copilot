@@ -1,4 +1,4 @@
-"""Accounts: profile (still a placeholder), transactions and counterparties (from the database)."""
+"""Accounts: profile, transactions and counterparties (from the database)."""
 
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy import Connection
 
-from aml.api import pagination, placeholders
+from aml.api import pagination
 from aml.api.database import connection
 from aml.api.problems import ProblemError
 from aml.api.repositories.accounts import AccountsRepository, SqlAccountsRepository, Window
@@ -42,8 +42,11 @@ def _require(repository: AccountsRepository, account_id: str) -> None:
 
 
 @router.get("/accounts/{account_id}", operation_id="getAccount")
-def get_account(account_id: AccountPath) -> Account:
-    return placeholders.account(account_id)
+def get_account(account_id: AccountPath, repository: Repository) -> Account:
+    account = repository.get(account_id)
+    if account is None:
+        raise ProblemError(404, f"Account {account_id} does not exist.")
+    return account
 
 
 @router.get("/accounts/{account_id}/transactions", operation_id="listAccountTransactions")
