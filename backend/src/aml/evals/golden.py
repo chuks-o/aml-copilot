@@ -42,10 +42,13 @@ LISTED = (
     "SCATTER_GATHER",
     "STACK",
 )
-TYPOLOGIES = (*LISTED, labels.UNLISTED)  # what a labeller may record for ESCALATE
+OTHER = "OTHER"  # suspicious, but no listed pattern fits: described in typology_other
+TYPOLOGIES = (*LISTED, OTHER)  # what a labeller may record for ESCALATE (LABELLING_RULES.md)
 DECISIONS = ("ESCALATE", "CLOSE")
 KEY_TRANSACTIONS = (3, 8)
 NOTE_MAX = 500
+OTHER_MAX = 80
+SOFT_LIMIT_SECONDS = 120  # the screen warns after this long on one alert
 
 # 0004: the T01 hard negatives. 4726:808FAF7C0 has alerts in test only, so it can't be sampled.
 T01_ACCOUNTS = (
@@ -298,6 +301,7 @@ class GoldenLabel:
     alert_id: UUID
     decision: str
     typology: str | None
+    typology_other: str | None
     key_transaction_ids: list[int]
     note: str
     seconds: float
@@ -311,23 +315,47 @@ class GoldenLabel:
 
 
 def validate(
-    decision: str, typology: str | None, key_ids: Sequence[int], note: str, visible: set[int]
+    *,
+    decision: str,
+    typology: str | None,
+    typology_other: str | None,
+    key_ids: Sequence[int],
+    note: str,
+    visible: set[int],
+    cited: set[int],
 ) -> list[str]:
-    """Every rule a label breaks; empty means it can be saved."""
+    """Every rule a label breaks (LABELLING_RULES.md); empty means it can be saved."""
     problems = []
     if decision not in DECISIONS:
         problems.append(f"decision must be one of {', '.join(DECISIONS)}")
-    if decision == "ESCALATE" and typology not in TYPOLOGIES:
-        problems.append(f"an ESCALATE needs a typology: one of {', '.join(TYPOLOGIES)}")
-    if decision == "CLOSE" and typology is not None:
+    if decision == "ESCALATE":
+        if typology not in TYPOLOGIES:
+            problems.append(f"an ESCALATE needs a typology: one of {', '.join(TYPOLOGIES)}")
+        elif typology == OTHER and not (typology_other or "").strip():
+            problems.append("describe the OTHER pattern in a few words")
+        elif typology == OTHER and len(typology_other or "") > OTHER_MAX:
+            problems.append(f"keep the OTHER description under {OTHER_MAX} characters")
+        elif typology != OTHER and typology_other is not None:
+            problems.append("only an OTHER typology has a description")
+    if decision == "CLOSE" and (typology is not None or typology_other is not None):
         problems.append("a CLOSE has no typology")
     low, high = KEY_TRANSACTIONS
-    if len(set(key_ids)) != len(key_ids):
+    chosen = set(key_ids)
+    if len(chosen) != len(key_ids):
         problems.append("key transactions are listed twice")
-    if not low <= len(set(key_ids)) <= high:
+    if not low <= len(chosen) <= high:
         problems.append(f"give {low} to {high} key transactions")
-    if unknown := sorted(set(key_ids) - visible):
+    if unknown := sorted(chosen - visible):
         problems.append(f"not among this alert's visible transactions: {unknown}")
+    elif decision == "CLOSE":
+        # Rule 7: a CLOSE cites the rule's transactions; if the rule cited fewer than 3, all of
+        # them, topped up with other visible ones.
+        if len(cited) >= low and not chosen <= cited:
+            problems.append(
+                f"a CLOSE lists only transactions the rule cited: {sorted(chosen - cited)}"
+            )
+        if len(cited) < low and not cited <= chosen:
+            problems.append(f"the rule cited fewer than {low}: include all of {sorted(cited)}")
     if not note.strip():
         problems.append("write a short note")
     elif len(note) > NOTE_MAX:

@@ -37,4 +37,5 @@ New record: copy [0000-template.md](0000-template.md) to the next free number an
 | [0029](0029-labels-and-time-split.md) | Alert labels and a frozen time split | Accepted (T16) |
 | [0030](0030-rules-v2.md) | rules-v2: fan_out at 10 counterparties | Accepted (T16 follow-up) |
 | [0031](0031-first-frozen-split.md) | The first frozen split (rules-v2, full replay) | Accepted (T16 follow-up) |
-| [0032](0032-golden-set.md) | Golden set v1: a blind, stratified sample labelled in the terminal | Accepted (T17) |
+| [0032](0032-golden-set.md) | Golden set v1: a blind, stratified sample labelled in the terminal | Accepted (T17); decision 6 superseded by 0033 |
+| [0033](0033-golden-labelling-rules.md) | Golden-set labelling rules, from the labeller's answers | Accepted (T17) |

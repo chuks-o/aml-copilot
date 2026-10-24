@@ -143,30 +143,48 @@ def test_the_sample_file_keeps_order_seed_and_source_hash(tmp_path: Path) -> Non
 
 
 VISIBLE = {1, 2, 3, 4, 5, 6, 7, 8, 9}
+CITED = {1, 2, 3, 4}
 
 
 @pytest.mark.parametrize(
-    ("decision", "typology", "ids", "note", "problem"),
+    ("decision", "typology", "other", "ids", "note", "problem"),
     [
-        ("ESCALATE", "FAN_IN", [1, 2, 3], "ok", None),
-        ("CLOSE", None, [1, 2, 3, 4, 5, 6, 7, 8], "ok", None),
-        ("ESCALATE", "UNLISTED", [1, 2, 3], "ok", None),
-        ("MAYBE", None, [1, 2, 3], "ok", "decision must be one of"),
-        ("ESCALATE", None, [1, 2, 3], "ok", "needs a typology"),
-        ("ESCALATE", "FAN-IN", [1, 2, 3], "ok", "needs a typology"),
-        ("CLOSE", "FAN_IN", [1, 2, 3], "ok", "a CLOSE has no typology"),
-        ("CLOSE", None, [1, 2], "ok", "give 3 to 8"),
-        ("CLOSE", None, [1, 2, 3, 4, 5, 6, 7, 8, 9], "ok", "give 3 to 8"),
-        ("CLOSE", None, [1, 1, 2, 3], "ok", "listed twice"),
-        ("CLOSE", None, [1, 2, 99], "ok", "not among this alert's visible transactions: [99]"),
-        ("CLOSE", None, [1, 2, 3], "  ", "write a short note"),
-        ("CLOSE", None, [1, 2, 3], "x" * 501, "under 500"),
+        ("ESCALATE", "FAN_IN", None, [5, 6, 7], "ok", None),
+        ("ESCALATE", "OTHER", "layering via cheques", [5, 6, 7], "ok", None),
+        ("CLOSE", None, None, [1, 2, 3], "ok", None),
+        ("MAYBE", None, None, [1, 2, 3], "ok", "decision must be one of"),
+        ("ESCALATE", None, None, [1, 2, 3], "ok", "needs a typology"),
+        ("ESCALATE", "UNLISTED", None, [1, 2, 3], "ok", "needs a typology"),  # rule 4: OTHER
+        ("ESCALATE", "OTHER", " ", [1, 2, 3], "ok", "describe the OTHER pattern"),
+        ("ESCALATE", "OTHER", "x" * 81, [1, 2, 3], "ok", "under 80"),
+        ("ESCALATE", "STACK", "why", [1, 2, 3], "ok", "only an OTHER typology"),
+        ("CLOSE", "FAN_IN", None, [1, 2, 3], "ok", "a CLOSE has no typology"),
+        ("CLOSE", None, None, [1, 2], "ok", "give 3 to 8"),
+        ("ESCALATE", "STACK", None, [1, 2, 3, 4, 5, 6, 7, 8, 9], "ok", "give 3 to 8"),
+        ("CLOSE", None, None, [1, 1, 2, 3], "ok", "listed twice"),
+        ("CLOSE", None, None, [1, 2, 99], "ok", "visible transactions: [99]"),
+        ("CLOSE", None, None, [1, 2, 5], "ok", "only transactions the rule cited: [5]"),  # rule 7
+        ("CLOSE", None, None, [1, 2, 3], "  ", "write a short note"),
+        ("CLOSE", None, None, [1, 2, 3], "x" * 501, "under 500"),
     ],
 )
 def test_validation(
-    decision: str, typology: str | None, ids: list[int], note: str, problem: str | None
+    decision: str,
+    typology: str | None,
+    other: str | None,
+    ids: list[int],
+    note: str,
+    problem: str | None,
 ) -> None:
-    problems = golden.validate(decision, typology, ids, note, VISIBLE)
+    problems = golden.validate(
+        decision=decision,
+        typology=typology,
+        typology_other=other,
+        key_ids=ids,
+        note=note,
+        visible=VISIBLE,
+        cited=CITED,
+    )
 
     if problem is None:
         assert problems == []
@@ -174,11 +192,31 @@ def test_validation(
         assert any(problem in p for p in problems), problems
 
 
+@pytest.mark.parametrize(
+    ("ids", "ok"), [([1, 2, 5], True), ([1, 5, 6], False), ([1, 2, 5, 6, 7], True)]
+)
+def test_a_close_on_a_rule_citing_fewer_than_3_includes_all_of_them(
+    ids: list[int], ok: bool
+) -> None:
+    problems = golden.validate(
+        decision="CLOSE",
+        typology=None,
+        typology_other=None,
+        key_ids=ids,
+        note="paired payroll",
+        visible=VISIBLE,
+        cited={1, 2},  # pass_through cites 2
+    )
+
+    assert (problems == []) is ok, problems
+
+
 def _label(alert: int, decision: str = "CLOSE", **changes: object) -> GoldenLabel:
     fields: dict[str, object] = {
         "alert_id": UUID(int=alert),
         "decision": decision,
         "typology": None,
+        "typology_other": None,
         "key_transaction_ids": [1, 2, 3],
         "note": "n",
         "seconds": 12.5,

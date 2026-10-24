@@ -236,6 +236,7 @@ def golden_label(
     from uuid import UUID
 
     from rich.console import Console
+    from rich.markup import escape
 
     from aml.evals import golden, label_cli
 
@@ -245,7 +246,7 @@ def golden_label(
     session = label_cli.Session(
         source=label_cli.ApiSource(),
         console=console,
-        read=console.input,
+        read=lambda prompt: console.input(escape(prompt)),  # prompts hold [Y/n], notes
         labeller=labeller or getpass.getuser(),
     )
     try:

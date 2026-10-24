@@ -1,6 +1,6 @@
 # 0032 — Golden set v1: a blind, stratified sample labelled in the terminal
 
-**Status:** Accepted · **Ticket:** T17 · **Date:** 2026-10-24
+**Status:** Accepted; decision 6 superseded by [0033](0033-golden-labelling-rules.md) · **Ticket:** T17 · **Date:** 2026-10-24
 
 ## Context
 

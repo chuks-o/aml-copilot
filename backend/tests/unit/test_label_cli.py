@@ -126,9 +126,17 @@ class Script:
 
 
 class FakeClock(label_cli.Clock):
+    """Returns ``times`` in order, then the last one forever."""
+
     def __init__(self, times: list[float]) -> None:
         ticks = iter(times)
-        super().__init__(now=lambda: next(ticks))
+        last = [times[-1]]
+
+        def now() -> float:
+            last[0] = next(ticks, last[0])
+            return last[0]
+
+        super().__init__(now=now)
 
 
 @pytest.fixture
@@ -187,9 +195,9 @@ def test_pages_move_and_stop_at_the_ends(files: tuple[Path, Path]) -> None:
 def test_an_escalation_is_saved_with_the_time_on_screen_minus_pauses(
     files: tuple[Path, Path],
 ) -> None:
-    # start 100; pause from 110 to 160; saved at 180: 80 - 50 paused = 30 s on screen.
-    # The last tick starts the clock for the next alert.
-    clock = FakeClock([100.0, 110.0, 160.0, 180.0, 200.0])
+    # start 100, drawn at 105, paused 110 to 160, drawn at 165, saved at 180:
+    # 80 s minus 50 paused = 30 s on screen.
+    clock = FakeClock([100.0, 105.0, 110.0, 160.0, 165.0, 180.0])
     answers = ["z", "", "e", "3", "41 42, 43", "Five senders in minutes, then silence.", "y", "q"]
     session, _, _ = _session(files, answers, clock)
 
@@ -200,6 +208,7 @@ def test_an_escalation_is_saved_with_the_time_on_screen_minus_pauses(
         "alert_id": str(ALERTS[0]),
         "decision": "ESCALATE",
         "typology": "FAN_IN",
+        "typology_other": None,
         "key_transaction_ids": [41, 42, 43],
         "note": "Five senders in minutes, then silence.",
         "seconds": 30.0,
@@ -214,6 +223,7 @@ def test_invalid_answers_save_nothing_and_return_to_the_screen(files: tuple[Path
     answers = [
         "c", "41 42", "two only",  # too few key transactions
         "c", "41 42 999", "unseen id",  # 999 is not visible up to the alert
+        "c", "40 41 42", "uncited",  # a CLOSE lists the rule's transactions (rule 7)
         "e", "", # Enter at the typology goes back
         "c", "41 42 43", "fine", "n",  # declined at the confirmation
         "q",
@@ -224,12 +234,13 @@ def test_invalid_answers_save_nothing_and_return_to_the_screen(files: tuple[Path
     assert not files[1].exists()
     assert "give 3 to 8 key transactions" in out.getvalue()
     assert "not among this alert's visible transactions: [999]" in out.getvalue()
+    assert "a CLOSE lists only transactions the rule cited: [40]" in out.getvalue()
 
 
 def test_a_session_resumes_at_the_first_unlabelled_alert_and_skips_come_back_last(
     files: tuple[Path, Path],
 ) -> None:
-    close = ["c", "1 2 3", "ordinary payroll", "y"]
+    close = ["c", "41 42 43", "ordinary payroll", "y"]
     first, _, _ = _session(files, [*close, "q"])
     first.run()
 
@@ -242,14 +253,21 @@ def test_a_session_resumes_at_the_first_unlabelled_alert_and_skips_come_back_las
 
 
 def test_revise_relabels_one_alert_and_the_new_line_wins(files: tuple[Path, Path]) -> None:
-    first, _, _ = _session(files, ["c", "1 2 3", "first look", "y", "q"])
+    first, _, _ = _session(files, ["c", "41 42 43", "first look", "y", "q"])
     first.run()
 
-    again, _, _ = _session(files, ["e", "UNLISTED", "41 42 43", "second look", "y"])
+    again, _, _ = _session(
+        files, ["e", "9", "senders paid in sequence", "1 2 41", "second look", "y"]
+    )
     assert again.run(revise=ALERTS[0]) == 1
 
     label = golden.load_labels(files[1])[ALERTS[0]]
-    assert (label.decision, label.typology, label.revises) == ("ESCALATE", "UNLISTED", True)
+    assert (label.decision, label.typology, label.typology_other, label.revises) == (
+        "ESCALATE",
+        "OTHER",
+        "senders paid in sequence",
+        True,
+    )
 
 
 def test_revise_refuses_an_alert_outside_the_sample(files: tuple[Path, Path]) -> None:
@@ -257,3 +275,13 @@ def test_revise_refuses_an_alert_outside_the_sample(files: tuple[Path, Path]) ->
 
     with pytest.raises(golden.GoldenError, match="not in the golden sample"):
         session.run(revise=UUID(int=99))
+
+
+def test_after_2_minutes_on_an_alert_the_screen_says_so(files: tuple[Path, Path]) -> None:
+    clock = FakeClock([0.0, 60.0, 119.0, 121.0])  # start, three redraws
+    session, out, _ = _session(files, ["n", "n", "q"], clock)
+
+    session.run()
+
+    warnings = [line for line in out.getvalue().splitlines() if "min on this alert" in line]
+    assert warnings == ["2 min on this alert: decide, or [s]kip it for now."]

@@ -318,6 +318,12 @@ class Session:
         while True:
             self.console.rule(f"{done} of {total} labelled" + (" · revising" if revising else ""))
             self.console.print(screen(view))
+            if (spent := self.clock.seconds()) >= golden.SOFT_LIMIT_SECONDS:
+                self.console.print(
+                    f"{spent / 60:.0f} min on this alert: decide, or [s]kip it for now.",
+                    style="yellow",
+                    markup=False,
+                )
             self.console.print(escape(HELP), style="dim")
             command = self.read("> ").strip().lower()
             if command in ("n", ""):
@@ -343,6 +349,7 @@ class Session:
     def _record(self, view: View, decision: str, revising: bool) -> bool:
         """Ask for the label's fields; False (back to the screen) on an empty answer."""
         typology: str | None = None
+        typology_other: str | None = None
         if decision == "ESCALATE":
             choices = " ".join(f"{n}={t}" for n, t in enumerate(golden.TYPOLOGIES, 1))
             answer = self.read(f"Typology ({choices}; Enter to go back): ").strip().upper()
@@ -353,7 +360,10 @@ class Session:
                 if answer.isdigit() and 1 <= int(answer) <= len(golden.TYPOLOGIES)
                 else answer
             )
-        answer = self.read("Key transaction ids, 3 to 8 (Enter to go back): ")
+            if typology == golden.OTHER:
+                typology_other = self.read("Describe the pattern in a few words: ").strip()
+        which = "of those the rule cited (*)" if decision == "CLOSE" else "that show it"
+        answer = self.read(f"Key transaction ids {which}, 3 to 8 (Enter to go back): ")
         if not answer.strip():
             return False
         key_ids = parse_ids(answer)
@@ -361,13 +371,22 @@ class Session:
             self.console.print("[red]Transaction ids are numbers.[/]")
             return False
         note = self.read("Note: ").strip()
-        problems = golden.validate(decision, typology, key_ids, note, view.visible_ids)
+        problems = golden.validate(
+            decision=decision,
+            typology=typology,
+            typology_other=typology_other,
+            key_ids=key_ids,
+            note=note,
+            visible=view.visible_ids,
+            cited=set(view.alert.transaction_ids),
+        )
         if problems:
             for problem in problems:
                 self.console.print(f"[red]{problem}[/]")
             return False
         seconds = self.clock.seconds()
-        summary = f"{decision} {typology or ''} {key_ids} ({seconds:.0f} s): {note}"
+        kind = f"{typology}: {typology_other}" if typology_other else typology or ""
+        summary = f"{decision} {kind} {key_ids} ({seconds:.0f} s): {note}"
         if self.read(f"Save {summary}? [Y/n] ").strip().lower() not in ("", "y", "yes"):
             return False
         golden.append(
@@ -375,6 +394,7 @@ class Session:
                 alert_id=view.alert.id,
                 decision=decision,
                 typology=typology,
+                typology_other=typology_other,
                 key_transaction_ids=key_ids,
                 note=note,
                 seconds=seconds,
